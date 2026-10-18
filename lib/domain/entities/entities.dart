@@ -15,6 +15,9 @@ class Exercise {
   final int targetSets;
   final String targetReps;
 
+  /// Fotos de cómo se hace: posición inicial y final (puede estar vacío).
+  final List<String> imageUrls;
+
   const Exercise({
     required this.id,
     required this.name,
@@ -23,6 +26,7 @@ class Exercise {
     this.restSeconds = 90,
     this.targetSets = 3,
     this.targetReps = '8-12',
+    this.imageUrls = const [],
   });
 
   Exercise copyWith({
@@ -32,6 +36,7 @@ class Exercise {
     int? restSeconds,
     int? targetSets,
     String? targetReps,
+    List<String>? imageUrls,
   }) =>
       Exercise(
         id: id,
@@ -41,6 +46,7 @@ class Exercise {
         restSeconds: restSeconds ?? this.restSeconds,
         targetSets: targetSets ?? this.targetSets,
         targetReps: targetReps ?? this.targetReps,
+        imageUrls: imageUrls ?? this.imageUrls,
       );
 }
 

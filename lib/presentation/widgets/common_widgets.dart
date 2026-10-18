@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../domain/entities/entities.dart';
 
 /// Componentes del diseño en Figma: StatCard, ExerciseRow, SectionTitle,
 /// Button/Primary. Cada uno equivale a un componente de la librería.
@@ -66,6 +67,9 @@ class ExerciseRow extends StatelessWidget {
   final Color iconColor;
   final VoidCallback? onTap;
 
+  /// Si hay fotos del ejercicio, se muestra la miniatura en vez del ícono.
+  final List<String> imageUrls;
+
   const ExerciseRow({
     super.key,
     required this.name,
@@ -73,6 +77,7 @@ class ExerciseRow extends StatelessWidget {
     this.icon = Icons.fitness_center_rounded,
     this.iconColor = AppColors.primary,
     this.onTap,
+    this.imageUrls = const [],
   });
 
   @override
@@ -87,16 +92,19 @@ class ExerciseRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: iconColor == AppColors.primary
-                      ? AppColors.surface2
-                      : AppColors.soft(iconColor),
-                  borderRadius: BorderRadius.circular(12),
+              if (imageUrls.isNotEmpty)
+                ExerciseThumb(urls: imageUrls, size: 44)
+              else
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: iconColor == AppColors.primary
+                        ? AppColors.surface2
+                        : AppColors.soft(iconColor),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, size: 22, color: iconColor),
                 ),
-                child: Icon(icon, size: 22, color: iconColor),
-              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -386,4 +394,101 @@ class AppSheet extends StatelessWidget {
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
       );
+}
+
+/// Miniatura de un ejercicio (primera foto). Si no hay foto o no carga
+/// (p. ej. sin señal la primera vez), muestra el ícono de mancuerna.
+class ExerciseThumb extends StatelessWidget {
+  final List<String> urls;
+  final double size;
+  const ExerciseThumb({super.key, required this.urls, this.size = 44});
+
+  @override
+  Widget build(BuildContext context) {
+    final fallback = Container(
+      width: size,
+      height: size,
+      color: AppColors.surface2,
+      child: Icon(Icons.fitness_center_rounded,
+          size: size * 0.5, color: AppColors.primary),
+    );
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: urls.isEmpty
+          ? fallback
+          : Image.network(
+              urls.first,
+              width: size,
+              height: size,
+              fit: BoxFit.cover,
+              cacheWidth: (size * dpr).round(),
+              errorBuilder: (_, __, ___) => fallback,
+              loadingBuilder: (_, child, progress) =>
+                  progress == null ? child : fallback,
+            ),
+    );
+  }
+}
+
+/// Hoja "Cómo se hace": posición inicial y final del ejercicio.
+void showExerciseHowTo(Exercise e, List<String> urls) {
+  Widget photo(String url, String label) => Expanded(
+        child: Column(children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: AspectRatio(
+              aspectRatio: 1,
+              child: Container(
+                color: Colors.white,
+                child: Image.network(
+                  url,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const Center(
+                    child: Icon(Icons.image_not_supported_outlined,
+                        color: AppColors.muted),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(label,
+              style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+        ]),
+      );
+
+  AppSheet.show<void>(
+    title: e.name,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          [e.muscleGroup, if (e.equipment.isNotEmpty) e.equipment].join(' · '),
+          style: const TextStyle(fontSize: 13, color: AppColors.muted),
+        ),
+        const SizedBox(height: 14),
+        if (urls.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: Text('Este ejercicio aún no tiene fotos.',
+                  style: TextStyle(color: AppColors.muted)),
+            ),
+          )
+        else
+          Row(children: [
+            photo(urls.first, 'Inicio'),
+            if (urls.length > 1) ...[
+              const SizedBox(width: 10),
+              photo(urls[1], 'Final'),
+            ],
+          ]),
+        const SizedBox(height: 14),
+        if (urls.isNotEmpty)
+          const Text('Fotos: free-exercise-db (dominio público).',
+              style: TextStyle(fontSize: 11, color: AppColors.muted)),
+      ],
+    ),
+  );
 }

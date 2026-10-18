@@ -1,3 +1,4 @@
+import '../catalog/exercise_catalog.dart';
 import '../entities/entities.dart';
 
 /// Contratos de acceso a datos.
@@ -42,4 +43,11 @@ abstract class MeasurementsRepository {
 abstract class RoutineWriteRepository {
   Future<void> saveRoutine(String userId, Routine routine);
   Future<void> deleteRoutine(String userId, String routineId);
+}
+
+/// Biblioteca de ejercicios para elegir al armar rutinas. Hoy sale de un
+/// archivo dentro de la app; mañana podría ser Firestore o una API sin
+/// cambiar nada más.
+abstract class ExerciseLibraryRepository {
+  Future<List<CatalogExercise>> getAll();
 }

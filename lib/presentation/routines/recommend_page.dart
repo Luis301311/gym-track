@@ -306,6 +306,8 @@ class _PlanDay extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Row(children: [
+                ExerciseThumb(urls: e.imageUrls, size: 34),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(e.name, style: const TextStyle(fontSize: 14)),
                 ),

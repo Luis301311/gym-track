@@ -14,6 +14,7 @@ Map<String, dynamic> exerciseToMap(Exercise e) => {
       'restSeconds': e.restSeconds,
       'targetSets': e.targetSets,
       'targetReps': e.targetReps,
+      if (e.imageUrls.isNotEmpty) 'images': e.imageUrls,
     };
 
 Exercise exerciseFromMap(Map<String, dynamic> m) => Exercise(
@@ -24,6 +25,9 @@ Exercise exerciseFromMap(Map<String, dynamic> m) => Exercise(
       restSeconds: (m['restSeconds'] as num?)?.toInt() ?? 90,
       targetSets: (m['targetSets'] as num?)?.toInt() ?? 3,
       targetReps: m['targetReps'] as String? ?? '8-12',
+      imageUrls: [
+        for (final u in (m['images'] as List? ?? const [])) u as String,
+      ],
     );
 
 Map<String, dynamic> sessionToMap(WorkoutSession s, DateWriter writeDate) => {

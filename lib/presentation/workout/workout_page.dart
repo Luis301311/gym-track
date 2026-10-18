@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../domain/catalog/exercise_catalog.dart';
 import '../../domain/entities/entities.dart';
 import '../../domain/usecases/workout_usecases.dart';
 import '../../domain/utils/date_utils.dart';
@@ -291,6 +292,7 @@ class _ActiveWorkout extends StatelessWidget {
             ExerciseRow(
               name: next.exercise.name,
               detail: _plan(next),
+              imageUrls: exerciseImages(next.exercise),
               onTap: () => c.goTo(i + 1),
             ),
             const SizedBox(height: 16),
@@ -440,19 +442,34 @@ class _ExerciseCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppColors.surface2,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                draft.isComplete
-                    ? Icons.check_rounded
-                    : Icons.fitness_center_rounded,
-                size: 22,
-                color: AppColors.primary,
-              ),
+            // Foto del ejercicio: al tocarla se ve cómo se hace.
+            GestureDetector(
+              onTap: () => showExerciseHowTo(e, exerciseImages(e)),
+              child: Stack(clipBehavior: Clip.none, children: [
+                ExerciseThumb(urls: exerciseImages(e), size: 52),
+                Positioned(
+                  right: -4,
+                  bottom: -4,
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      color: draft.isComplete
+                          ? AppColors.primary
+                          : AppColors.surface,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      draft.isComplete
+                          ? Icons.check_rounded
+                          : Icons.info_outline_rounded,
+                      size: 14,
+                      color: draft.isComplete
+                          ? AppColors.onPrimary
+                          : AppColors.primary,
+                    ),
+                  ),
+                ),
+              ]),
             ),
             const SizedBox(width: 12),
             Expanded(

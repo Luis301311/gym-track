@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../domain/catalog/exercise_catalog.dart';
 import '../../domain/entities/entities.dart';
 import '../../domain/usecases/get_home_summary.dart';
 import '../../domain/utils/date_utils.dart';
@@ -289,7 +290,13 @@ class _LastWorkout extends StatelessWidget {
           )
         else
           for (final log in session!.logs) ...[
-            ExerciseRow(name: log.exercise.name, detail: _detail(log)),
+            ExerciseRow(
+              name: log.exercise.name,
+              detail: _detail(log),
+              imageUrls: exerciseImages(log.exercise),
+              onTap: () => showExerciseHowTo(
+                  log.exercise, exerciseImages(log.exercise)),
+            ),
             const SizedBox(height: 10),
           ],
       ],

@@ -8,7 +8,7 @@
 //  - Archivos de la app: primero red (para recibir actualizaciones). Si ya
 //    hay copia guardada y la red no responde en 4 s, se usa la copia.
 //    En la primera visita se espera la red sin límite.
-//  - Fuentes de Google y CanvasKit (versionados): primero caché.
+//  - Fuentes de Google, CanvasKit y fotos de ejercicios: primero caché.
 //  - Firestore, Auth y cualquier otro dominio: no se tocan.
 //
 // Para forzar que todos descarguen todo de nuevo, cambia CACHE_VERSION.
@@ -40,11 +40,14 @@ self.addEventListener('fetch', (event) => {
                  url.hostname === 'fonts.googleapis.com';
   const isFlutterEngine = url.hostname === 'www.gstatic.com' &&
                           url.pathname.startsWith('/flutter-canvaskit/');
+  // Fotos de ejercicios (free-exercise-db): no cambian, se guardan al verlas.
+  const isExerciseImage = url.hostname === 'raw.githubusercontent.com' &&
+                          url.pathname.startsWith('/yuhonas/free-exercise-db/');
 
   // Rutas internas de Firebase Hosting / Auth: siempre a la red.
   if (sameOrigin && url.pathname.startsWith('/__/')) return;
 
-  if (isFont || isFlutterEngine) {
+  if (isFont || isFlutterEngine || isExerciseImage) {
     event.respondWith(cacheFirst(req));
   } else if (sameOrigin) {
     event.respondWith(networkFirst(req));

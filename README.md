@@ -54,6 +54,11 @@ Los ejercicios se eligen según tu equipo (gimnasio, mancuernas o sin equipo) y 
 
 **Enfoque y sexo:** los principios de entrenamiento son los mismos para todos. El enfoque (*Equilibrado*, *Glúteos y piernas* o *Torso y brazos*) agrega un ejercicio extra de esa zona en cada día y la prioriza. Si indicas mujer, se sugiere *Glúteos y piernas* (editable) y los descansos son ~15 s más cortos, porque en promedio la recuperación entre series es más rápida.
 
+### 🖼️ Biblioteca de ejercicios con fotos
+- **~555 ejercicios en español** para armar rutinas: ~55 curados (los que usa el recomendador) + ~500 de [free-exercise-db](https://github.com/yuhonas/free-exercise-db), filtrables por músculo y con buscador.
+- Cada ejercicio muestra su **foto**. Tocándola se abre **"Cómo se hace"** con la posición inicial y la final.
+- Las fotos se guardan al verlas, así que después también se ven sin señal.
+
 ### 📈 Progreso
 - Vista por **semana, mes o año**.
 - Curva de **peso corporal** y botón para registrarlo.
@@ -119,7 +124,8 @@ flowchart LR
 | Nueva tarjeta en Inicio | Clase que extienda `ProgressMetric` | `GetHomeSummary`, `HomePage` |
 | Nueva medida corporal (muslo…) | Una línea en `kMeasurementTypes` | Formulario, lista, cálculos |
 | Nueva división de rutina | Clase que extienda `SplitTemplate` | `RoutineRecommender` |
-| Nuevo ejercicio en el catálogo | Una línea en `kExerciseCatalog` | Selector y recomendador |
+| Nuevo ejercicio en el catálogo curado | Una línea en `kExerciseCatalog` | Selector y recomendador |
+| Biblioteca desde Firestore o una API | Otra implementación de `ExerciseLibraryRepository` | Selector, editor de rutinas |
 
 Además, los contratos de **lectura y escritura están separados** (`ProfileRepository` / `ProfileWriteRepository`). Así, quien solo lee no depende de algo que no usa.
 
@@ -286,6 +292,21 @@ class TotalWorkoutsMetric extends ProgressMetric {
 
 ---
 
+## Biblioteca de ejercicios
+
+`assets/exercise_library.json` se genera a partir de
+[free-exercise-db](https://github.com/yuhonas/free-exercise-db) (dominio
+público, Unlicense): ejercicios de fuerza con equipo de gimnasio, con nombre en
+español (`tool/exercise_names_es.tsv`) y músculo/equipo traducidos. Las fotos
+se cargan desde el repositorio original en GitHub.
+
+Para regenerarla (por ejemplo, tras corregir o agregar traducciones):
+
+```bash
+git clone --depth 1 https://github.com/yuhonas/free-exercise-db.git
+python tool/build_exercise_library.py free-exercise-db/dist/exercises.json
+```
+
 ## Hoja de ruta
 
 - [x] Inicio, Entrenar, Progreso y Perfil
@@ -293,6 +314,7 @@ class TotalWorkoutsMetric extends ProgressMetric {
 - [x] Crear/editar rutinas y recomendación de rutina
 - [x] PWA instalable en iPhone y Android
 - [ ] Recordatorios (notificaciones)
+- [x] Biblioteca de ~555 ejercicios con fotos
 - [ ] Gráfica de progreso por ejercicio
 - [ ] App nativa para iOS (TestFlight)
 - [ ] Backend propio (NestJS + Postgres)
@@ -302,3 +324,5 @@ class TotalWorkoutsMetric extends ProgressMetric {
 ## Autor
 
 **Luis Vega** — Ingeniería de Sistemas, Universidad Popular del Cesar.
+
+Fotos y datos base de ejercicios: [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (dominio público).

@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
+import '../../data/repositories/asset_exercise_library.dart';
 import '../../data/repositories/firebase_auth_repository.dart';
 import '../../data/repositories/firestore_repositories.dart';
 import '../../data/repositories/memory_repositories.dart';
@@ -84,6 +85,9 @@ Future<void> initDependencies() async {
       Get.put<BodyMetricsRepository>(FirestoreBodyMetricsRepository(db),
           permanent: true);
   }
+
+  // Biblioteca de ejercicios: igual para cualquier backend (va dentro de la app).
+  Get.put<ExerciseLibraryRepository>(AssetExerciseLibrary(), permanent: true);
 
   // Métricas de Inicio: agregar una nueva = agregar una línea aquí.
   Get.put<List<ProgressMetric>>(

@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../core/theme/app_theme.dart';
 import '../../domain/catalog/exercise_catalog.dart';
 import '../../domain/entities/entities.dart';
+import '../../domain/repositories/repositories.dart';
 import '../widgets/common_widgets.dart';
 import 'routines_controller.dart';
 import 'routines_page.dart' show gymAppBar;
@@ -180,6 +181,11 @@ class _RoutineEditorPageState extends State<RoutineEditorPage> {
                             color: AppColors.muted),
                       ),
                     ),
+                    GestureDetector(
+                      onTap: () => showExerciseHowTo(e, exerciseImages(e)),
+                      child: ExerciseThumb(urls: exerciseImages(e), size: 44),
+                    ),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -280,6 +286,9 @@ class _ExercisePicker extends StatefulWidget {
 }
 
 class _ExercisePickerState extends State<_ExercisePicker> {
+  late final Future<List<CatalogExercise>> _library =
+      Get.find<ExerciseLibraryRepository>().getAll();
+  static const _maxShown = 60;
   final _search = TextEditingController();
   String? _muscle;
   bool _custom = false;
@@ -314,26 +323,48 @@ class _ExercisePickerState extends State<_ExercisePicker> {
   @override
   Widget build(BuildContext context) {
     if (_custom) return _customForm();
+    return FutureBuilder<List<CatalogExercise>>(
+      future: _library,
+      builder: (context, snap) {
+        if (!snap.hasData) {
+          return const Padding(
+            padding: EdgeInsets.all(32),
+            child: Center(
+                child: CircularProgressIndicator(color: AppColors.primary)),
+          );
+        }
+        return _list(snap.data!);
+      },
+    );
+  }
 
+  Widget _list(List<CatalogExercise> all) {
+    final muscles = <String>[];
+    for (final c in all) {
+      if (!muscles.contains(c.exercise.muscleGroup)) {
+        muscles.add(c.exercise.muscleGroup);
+      }
+    }
     final q = _norm(_search.text.trim());
-    final results = kExerciseCatalog.where((c) {
+    final results = all.where((c) {
       final e = c.exercise;
       if (_muscle != null && e.muscleGroup != _muscle) return false;
       if (q.isEmpty) return true;
       return _norm('${e.name} ${e.muscleGroup} ${e.equipment}').contains(q);
     }).toList();
+    final shown = results.take(_maxShown).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        AppTextField(controller: _search, label: 'Buscar ejercicio'),
+        AppTextField(controller: _search, label: 'Buscar entre ${all.length} ejercicios'),
         const SizedBox(height: 10),
         SizedBox(
           height: 36,
           child: ListView(
             scrollDirection: Axis.horizontal,
             children: [
-              for (final m in [null, ...catalogMuscleGroups()])
+              for (final m in [null, ...muscles])
                 Padding(
                   padding: const EdgeInsets.only(right: 6),
                   child: ChoiceChip(
@@ -369,9 +400,13 @@ class _ExercisePickerState extends State<_ExercisePicker> {
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.muted)),
           ),
-        for (final c in results)
+        for (final c in shown)
           ListTile(
             contentPadding: EdgeInsets.zero,
+            leading: GestureDetector(
+              onTap: () => showExerciseHowTo(c.exercise, c.exercise.imageUrls),
+              child: ExerciseThumb(urls: c.exercise.imageUrls, size: 48),
+            ),
             title: Text(c.exercise.name,
                 style: const TextStyle(
                     fontSize: 15, fontWeight: FontWeight.w600)),
@@ -382,6 +417,16 @@ class _ExercisePickerState extends State<_ExercisePicker> {
                 : const Icon(Icons.add_circle_outline_rounded,
                     color: AppColors.primary),
             onTap: () => widget.onPick(_withDefaults(c)),
+          ),
+        if (results.length > shown.length)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Text(
+              'Mostrando $_maxShown de ${results.length}. '
+              'Escribe o filtra por músculo para encontrar más.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 12, color: AppColors.muted),
+            ),
           ),
       ],
     );
