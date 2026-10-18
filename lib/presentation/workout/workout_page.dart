@@ -135,7 +135,7 @@ class _NoRoutines extends StatelessWidget {
                   style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
               SizedBox(height: 6),
               Text(
-                  'Créalo a tu gusto o responde 5 preguntas y te recomendamos uno.',
+                  'Créalo a tu gusto o responde unas preguntas y te recomendamos uno.',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 13, color: AppColors.muted)),
             ]),

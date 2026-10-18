@@ -83,6 +83,7 @@ class ProfileController extends GetxController {
     required String goal,
     required String heightCm,
     required int weeklyGoal,
+    Sex? sex,
   }) async {
     final current = _profile;
     if (current == null) return 'El perfil aún no carga.';
@@ -102,6 +103,7 @@ class ProfileController extends GetxController {
       goal: goal.trim(),
       weeklyGoal: weeklyGoal,
       heightCm: height,
+      sex: sex,
     );
     try {
       await profileWriter.saveProfile(updated);
@@ -112,6 +114,22 @@ class ProfileController extends GetxController {
     _recompute();
     onProfileChanged?.call();
     return null;
+  }
+
+  UserProfile? get profile => _profile;
+
+  /// Cambia solo el sexo (lo usa la recomendación de rutinas).
+  Future<void> updateSex(Sex sex) async {
+    final current = _profile;
+    if (current == null || current.sex == sex) return;
+    final updated = current.copyWith(sex: sex);
+    try {
+      await profileWriter.saveProfile(updated);
+    } catch (_) {
+      return; // no es crítico: se puede volver a elegir en Perfil
+    }
+    _profile = updated;
+    _recompute();
   }
 
   /// Registra medidas. [raw] va de clave de medida a texto escrito; las

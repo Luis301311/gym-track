@@ -7,6 +7,21 @@ enum ExperienceLevel { beginner, intermediate, advanced }
 
 enum EquipmentAccess { gym, dumbbells, bodyweight }
 
+/// Parte del cuerpo a la que se le da prioridad (más ejercicios y primero).
+enum TrainingEmphasis { balanced, lowerBody, upperBody }
+
+extension TrainingEmphasisX on TrainingEmphasis {
+  String get label => switch (this) {
+        TrainingEmphasis.balanced => 'Equilibrado',
+        TrainingEmphasis.lowerBody => 'Glúteos y piernas',
+        TrainingEmphasis.upperBody => 'Torso y brazos',
+      };
+
+  /// Sugerencia inicial según el sexo (la persona la puede cambiar).
+  static TrainingEmphasis suggestedFor(Sex sex) =>
+      sex == Sex.female ? TrainingEmphasis.lowerBody : TrainingEmphasis.balanced;
+}
+
 extension TrainingGoalX on TrainingGoal {
   String get label => switch (this) {
         TrainingGoal.hypertrophy => 'Ganar músculo',
@@ -44,6 +59,8 @@ class RecommendationInput {
   final ExperienceLevel level;
   final EquipmentAccess access;
   final int minutes; // 45, 60 o 75
+  final TrainingEmphasis emphasis;
+  final Sex sex;
 
   const RecommendationInput({
     required this.goal,
@@ -51,7 +68,63 @@ class RecommendationInput {
     required this.level,
     required this.access,
     required this.minutes,
+    this.emphasis = TrainingEmphasis.balanced,
+    this.sex = Sex.unspecified,
   });
+}
+
+const _lowerPatterns = {
+  MovementPattern.squat,
+  MovementPattern.hinge,
+  MovementPattern.lunge,
+  MovementPattern.glutes,
+  MovementPattern.legAccessory,
+  MovementPattern.calves,
+};
+
+const _upperIsolation = {
+  MovementPattern.chestIsolation,
+  MovementPattern.shoulderIsolation,
+  MovementPattern.biceps,
+  MovementPattern.triceps,
+};
+
+/// Aplica el enfoque a un día: agrega al inicio un ejercicio extra de la zona
+/// prioritaria (para que no se recorte por tiempo) y manda al final lo de la
+/// otra zona.
+List<MovementPattern> applyEmphasis(
+    List<MovementPattern> slots, TrainingEmphasis emphasis) {
+  if (emphasis == TrainingEmphasis.balanced) return slots;
+  final hasLower = slots.any(_lowerPatterns.contains);
+  final hasUpper = slots.any((p) => !_lowerPatterns.contains(p) && p != MovementPattern.core);
+
+  if (emphasis == TrainingEmphasis.lowerBody && hasLower) {
+    final out = [...slots];
+    final firstLower = out.indexWhere(_lowerPatterns.contains);
+    out.insert(firstLower + 1, MovementPattern.glutes);
+    // Aislamientos de torso al final (son lo primero que se recorta).
+    final iso = out.where(_upperIsolation.contains).toList();
+    out.removeWhere(_upperIsolation.contains);
+    return [...out, ...iso];
+  }
+  if (emphasis == TrainingEmphasis.upperBody && hasUpper) {
+    final out = [...slots];
+    final firstUpper = out.indexWhere(
+        (p) => !_lowerPatterns.contains(p) && p != MovementPattern.core);
+    out.insert(firstUpper + 1, MovementPattern.shoulderIsolation);
+    // En días mixtos se conserva el primer ejercicio de pierna en su lugar y
+    // el resto de pierna pasa al final (es lo primero que se recorta).
+    final firstLower = out.indexWhere(_lowerPatterns.contains);
+    if (firstLower < 0) return out;
+    final keep = <MovementPattern>[];
+    final moved = <MovementPattern>[];
+    for (var i = 0; i < out.length; i++) {
+      final p = out[i];
+      (i != firstLower && _lowerPatterns.contains(p) ? moved : keep).add(p);
+    }
+    return [...keep, ...moved];
+  }
+  return slots;
 }
 
 /// Un día del plan: nombre y patrones de movimiento en orden de prioridad.
@@ -110,7 +183,8 @@ class UpperLowerSplit extends SplitTemplate {
         ]),
         DayTemplate('Pierna A', [
           MovementPattern.squat, MovementPattern.hinge, MovementPattern.lunge,
-          MovementPattern.legAccessory, MovementPattern.calves, MovementPattern.core,
+          MovementPattern.legAccessory, MovementPattern.glutes, MovementPattern.calves,
+          MovementPattern.core,
         ]),
         DayTemplate('Torso B', [
           MovementPattern.verticalPull, MovementPattern.horizontalPush, MovementPattern.horizontalPull,
@@ -221,7 +295,7 @@ class RoutineRecommender {
     for (var i = 0; i < templates.length; i++) {
       final t = templates[i];
       final picked = <Exercise>[];
-      for (final slot in t.slots) {
+      for (final slot in applyEmphasis(t.slots, input.emphasis)) {
         if (picked.length >= perDay) break;
         final options = catalog
             .where((c) => c.pattern == slot && allowed.contains(c.equipment))
@@ -271,6 +345,11 @@ class RoutineRecommender {
       ExperienceLevel.intermediate => base.sets,
       ExperienceLevel.advanced => compound ? (base.sets + 1).clamp(2, 6) : base.sets,
     };
-    return _Prescription(sets, base.reps, base.rest);
+    // En promedio, las mujeres se recuperan más rápido entre series al mismo
+    // esfuerzo relativo: descansos ~15 s más cortos (mínimo 45 s).
+    final rest = input.sex == Sex.female
+        ? (base.rest - 15).clamp(45, 600)
+        : base.rest;
+    return _Prescription(sets, base.reps, rest);
   }
 }

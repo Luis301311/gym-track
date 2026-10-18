@@ -13,6 +13,7 @@ enum MovementPattern {
   squat,
   hinge,
   lunge,
+  glutes,
   legAccessory,
   chestIsolation,
   shoulderIsolation,
@@ -45,7 +46,8 @@ class CatalogExercise {
 const _hp = MovementPattern.horizontalPush, _vp = MovementPattern.verticalPush,
     _hl = MovementPattern.horizontalPull, _vl = MovementPattern.verticalPull,
     _sq = MovementPattern.squat, _hi = MovementPattern.hinge,
-    _lu = MovementPattern.lunge, _la = MovementPattern.legAccessory,
+    _lu = MovementPattern.lunge, _gl = MovementPattern.glutes,
+    _la = MovementPattern.legAccessory,
     _ci = MovementPattern.chestIsolation, _si = MovementPattern.shoulderIsolation,
     _bi = MovementPattern.biceps, _tr = MovementPattern.triceps,
     _ca = MovementPattern.calves, _co = MovementPattern.core;
@@ -84,9 +86,15 @@ final kExerciseCatalog = <CatalogExercise>[
   // Bisagra de cadera
   CatalogExercise(_e('rdl', 'Peso muerto rumano', 'Femoral', 'Barra'), _hi, _bb, compound: true),
   CatalogExercise(_e('deadlift', 'Peso muerto', 'Espalda baja', 'Barra'), _hi, _bb, compound: true),
-  CatalogExercise(_e('hip_thrust', 'Hip thrust', 'Glúteos', 'Barra'), _hi, _bb, compound: true),
   CatalogExercise(_e('db_rdl', 'Peso muerto rumano con mancuernas', 'Femoral', 'Mancuernas'), _hi, _db, compound: true),
-  CatalogExercise(_e('glute_bridge', 'Puente de glúteos', 'Glúteos', 'Peso corporal'), _hi, _bw, compound: true),
+  CatalogExercise(_e('sl_rdl', 'Peso muerto a una pierna', 'Femoral', 'Peso corporal'), _hi, _bw, compound: true),
+  // Glúteos
+  CatalogExercise(_e('hip_thrust', 'Hip thrust', 'Glúteos', 'Barra'), _gl, _bb, compound: true),
+  CatalogExercise(_e('abduction', 'Abducción de cadera en máquina', 'Glúteos', 'Máquina'), _gl, _ma),
+  CatalogExercise(_e('cable_kickback', 'Patada de glúteo en polea', 'Glúteos', 'Máquina'), _gl, _ma),
+  CatalogExercise(_e('db_hip_thrust', 'Hip thrust con mancuerna', 'Glúteos', 'Mancuernas'), _gl, _db, compound: true),
+  CatalogExercise(_e('glute_bridge', 'Puente de glúteos', 'Glúteos', 'Peso corporal'), _gl, _bw, compound: true),
+  CatalogExercise(_e('frog_pump', 'Frog pumps', 'Glúteos', 'Peso corporal'), _gl, _bw),
   // Zancadas / unilateral
   CatalogExercise(_e('lunge', 'Zancadas', 'Piernas', 'Mancuernas'), _lu, _db, compound: true),
   CatalogExercise(_e('bulgarian', 'Sentadilla búlgara', 'Piernas', 'Mancuernas'), _lu, _db, compound: true),

@@ -102,6 +102,7 @@ UserProfile profileFromMap(String id, Map<String, dynamic> m) => UserProfile(
       goal: m['goal'] as String? ?? '',
       weeklyGoal: (m['weeklyGoal'] as num?)?.toInt() ?? 5,
       heightCm: (m['heightCm'] as num?)?.toDouble(),
+      sex: Sex.values.asNameMap()[m['sex']] ?? Sex.unspecified,
     );
 
 Map<String, dynamic> profileToMap(UserProfile p) => {
@@ -109,6 +110,7 @@ Map<String, dynamic> profileToMap(UserProfile p) => {
       'goal': p.goal,
       'weeklyGoal': p.weeklyGoal,
       'heightCm': p.heightCm,
+      'sex': p.sex.name,
     };
 
 Map<String, dynamic> weightToMap(BodyWeightEntry w, DateWriter writeDate) => {

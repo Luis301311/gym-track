@@ -212,7 +212,12 @@ class _MeasurementRow extends StatelessWidget {
           const SizedBox(width: 10),
           Pill(
             '${d > 0 ? '+' : '−'}${d.abs().toStringAsFixed(1)}',
-            color: stat.improved ? AppColors.primary : AppColors.orange,
+            // Verde si mejora, naranja si empeora, azul si depende del objetivo.
+            color: stat.improved
+                ? AppColors.primary
+                : stat.worsened
+                    ? AppColors.orange
+                    : AppColors.blue,
           ),
         ],
       ]),
@@ -288,6 +293,7 @@ void _editProfile(ProfileController c, UserProfile p) {
   final height = TextEditingController(
       text: p.heightCm == null ? '' : formatKg(p.heightCm!));
   final weekly = p.weeklyGoal.obs;
+  final sex = p.sex.obs;
   final error = RxnString();
   final saving = false.obs;
 
@@ -312,6 +318,33 @@ void _editProfile(ProfileController c, UserProfile p) {
             suffix: 'cm',
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: _decimalOnly,
+          ),
+          const SizedBox(height: 18),
+          const Text('Sexo',
+              style: TextStyle(fontSize: 13, color: AppColors.muted)),
+          const SizedBox(height: 8),
+          Obx(() => Wrap(spacing: 8, runSpacing: 8, children: [
+                for (final option in Sex.values)
+                  ChoiceChip(
+                    label: Text(option.label),
+                    selected: sex.value == option,
+                    showCheckmark: false,
+                    selectedColor: AppColors.primary,
+                    backgroundColor: AppColors.surface2,
+                    side: BorderSide.none,
+                    labelStyle: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: sex.value == option
+                            ? AppColors.onPrimary
+                            : AppColors.text),
+                    onSelected: (_) => sex.value = option,
+                  ),
+              ])),
+          const Padding(
+            padding: EdgeInsets.only(top: 6),
+            child: Text(
+                'Solo se usa para sugerir el enfoque y los descansos de tus rutinas.',
+                style: TextStyle(fontSize: 11, color: AppColors.muted)),
           ),
           const SizedBox(height: 18),
           const Text('Meta de entrenos por semana',
@@ -359,6 +392,7 @@ void _editProfile(ProfileController c, UserProfile p) {
                           goal: goal.text,
                           heightCm: height.text,
                           weeklyGoal: weekly.value,
+                          sex: sex.value,
                         );
                         saving.value = false;
                         if (msg == null) {

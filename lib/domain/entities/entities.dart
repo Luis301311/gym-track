@@ -159,6 +159,18 @@ int estimateMinutes(List<Exercise> exercises) {
   return exercises.isEmpty ? 0 : (seconds / 60).round() + 5;
 }
 
+/// Sexo de la persona. Se usa para sugerir valores por defecto (enfoque del
+/// plan, descansos); nunca para limitar lo que puede elegir.
+enum Sex { male, female, unspecified }
+
+extension SexX on Sex {
+  String get label => switch (this) {
+        Sex.male => 'Hombre',
+        Sex.female => 'Mujer',
+        Sex.unspecified => 'Prefiero no decir',
+      };
+}
+
 class UserProfile {
   final String id;
   final String name;
@@ -170,12 +182,15 @@ class UserProfile {
   /// Altura en centímetros (opcional).
   final double? heightCm;
 
+  final Sex sex;
+
   const UserProfile({
     required this.id,
     required this.name,
     required this.goal,
     this.weeklyGoal = 5,
     this.heightCm,
+    this.sex = Sex.unspecified,
   });
 
   UserProfile copyWith({
@@ -183,6 +198,7 @@ class UserProfile {
     String? goal,
     int? weeklyGoal,
     double? heightCm,
+    Sex? sex,
   }) =>
       UserProfile(
         id: id,
@@ -190,6 +206,7 @@ class UserProfile {
         goal: goal ?? this.goal,
         weeklyGoal: weeklyGoal ?? this.weeklyGoal,
         heightCm: heightCm ?? this.heightCm,
+        sex: sex ?? this.sex,
       );
 
   String get initials {
@@ -230,13 +247,24 @@ class MeasurementType {
   /// Si subir es bueno (pecho, brazo) o bajar es bueno (cintura).
   final bool higherIsBetter;
 
-  const MeasurementType(this.key, this.label, {this.higherIsBetter = true});
+  /// Medidas donde subir o bajar depende del objetivo de cada persona
+  /// (cadera, muslo): el cambio se muestra sin calificarlo.
+  final bool neutral;
+
+  const MeasurementType(
+    this.key,
+    this.label, {
+    this.higherIsBetter = true,
+    this.neutral = false,
+  });
 }
 
 const kMeasurementTypes = [
   MeasurementType('chest', 'Pecho'),
   MeasurementType('arm', 'Brazo'),
   MeasurementType('waist', 'Cintura', higherIsBetter: false),
+  MeasurementType('hip', 'Cadera', neutral: true),
+  MeasurementType('thigh', 'Muslo', neutral: true),
 ];
 
 /// Registro de medidas en una fecha. [valuesCm] usa las claves de

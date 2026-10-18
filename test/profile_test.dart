@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gymtrack/data/mappers/mappers.dart';
 import 'package:gymtrack/data/repositories/memory_repositories.dart';
 import 'package:gymtrack/domain/entities/entities.dart';
 import 'package:gymtrack/domain/usecases/profile_summary.dart';
@@ -121,6 +122,33 @@ void main() {
       expect(byKey['chest']!.deltaCm, 2);
       expect(byKey['waist']!.valueCm, 81.5);
       expect(byKey['arm']!.valueCm, 36); // sin cambio: se mantiene la anterior
+    });
+  });
+
+  group('Sexo y medidas neutrales', () {
+    test('cadera y muslo no se califican como mejora ni retroceso', () {
+      final s = buildProfileSummary(
+        profile: _profile,
+        sessions: const [],
+        weights: const [],
+        measurements: [
+          _m(10, {'hip': 98, 'waist': 84}),
+          _m(1, {'hip': 96, 'waist': 82}),
+        ],
+      );
+      final hip = s.measurements.firstWhere((m) => m.type.key == 'hip');
+      final waist = s.measurements.firstWhere((m) => m.type.key == 'waist');
+      expect(hip.deltaCm, 2);
+      expect(hip.improved, isFalse);
+      expect(hip.worsened, isFalse);
+      expect(waist.worsened, isTrue); // la cintura subió
+    });
+
+    test('el sexo se guarda y se lee del mapa', () {
+      final p = profileFromMap('u', profileToMap(_profile.copyWith(sex: Sex.female)));
+      expect(p.sex, Sex.female);
+      expect(profileFromMap('u', const {}).sex, Sex.unspecified);
+      expect(profileFromMap('u', const {'sex': 'otro'}).sex, Sex.unspecified);
     });
   });
 }

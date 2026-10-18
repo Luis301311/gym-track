@@ -6,6 +6,7 @@ import '../../domain/entities/entities.dart';
 import '../../domain/usecases/routine_recommender.dart';
 import '../../domain/utils/date_utils.dart';
 import '../widgets/common_widgets.dart';
+import '../profile/profile_controller.dart';
 import 'routines_controller.dart';
 import 'routines_page.dart' show gymAppBar;
 
@@ -26,6 +27,13 @@ class _RecommendPageState extends State<RecommendPage> {
   EquipmentAccess _access = EquipmentAccess.gym;
   int _minutes = 60;
 
+  ProfileController? get _profileCtrl => Get.isRegistered<ProfileController>()
+      ? Get.find<ProfileController>()
+      : null;
+  late Sex _sex = _profileCtrl?.profile?.sex ?? Sex.unspecified;
+  late TrainingEmphasis _emphasis = TrainingEmphasisX.suggestedFor(_sex);
+  bool _emphasisTouched = false;
+
   RoutineRecommendation? _plan;
   late bool _replace = _c.list.isNotEmpty;
   bool _saving = false;
@@ -37,6 +45,8 @@ class _RecommendPageState extends State<RecommendPage> {
           level: _level,
           access: _access,
           minutes: _minutes,
+          emphasis: _emphasis,
+          sex: _sex,
         ));
       });
 
@@ -45,6 +55,8 @@ class _RecommendPageState extends State<RecommendPage> {
     if (plan == null) return;
     setState(() => _saving = true);
     final msg = await _c.saveRecommendation(plan, replace: _replace);
+    // Si eligió su sexo aquí, queda guardado en el perfil.
+    if (msg == null) await _profileCtrl?.updateSex(_sex);
     if (!mounted) return;
     setState(() => _saving = false);
     if (msg != null) {
@@ -73,7 +85,7 @@ class _RecommendPageState extends State<RecommendPage> {
         padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
         children: [
           const Text(
-            'Responde 5 preguntas y te armo un plan semanal con ejercicios, '
+            'Responde 7 preguntas y te armo un plan semanal con ejercicios, '
             'series, repeticiones y descansos. Después puedes editar todo.',
             style: TextStyle(fontSize: 13, color: AppColors.muted),
           ),
@@ -82,6 +94,27 @@ class _RecommendPageState extends State<RecommendPage> {
             options: {for (final g in TrainingGoal.values) g: g.label},
             value: _goal,
             onChanged: (v) => setState(() => _goal = v),
+          ),
+          _Question(
+            title: 'Sexo',
+            options: {for (final x in Sex.values) x: x.label},
+            value: _sex,
+            onChanged: (v) => setState(() {
+              _sex = v;
+              // Mientras no haya elegido un enfoque, se sugiere según el sexo.
+              if (!_emphasisTouched) {
+                _emphasis = TrainingEmphasisX.suggestedFor(v);
+              }
+            }),
+          ),
+          _Question(
+            title: '¿En qué quieres enfocarte?',
+            options: {for (final e in TrainingEmphasis.values) e: e.label},
+            value: _emphasis,
+            onChanged: (v) => setState(() {
+              _emphasis = v;
+              _emphasisTouched = true;
+            }),
           ),
           _Question(
             title: '¿Cuántos días por semana puedes entrenar?',
@@ -137,8 +170,8 @@ class _RecommendPageState extends State<RecommendPage> {
                         color: AppColors.primary)),
                 const SizedBox(height: 4),
                 Text(
-                  '${_goal.label} · $_days días · ${_level.label} · '
-                  '${_access.label}',
+                  '${_goal.label} · ${_emphasis.label} · $_days días · '
+                  '${_level.label} · ${_access.label}',
                   style: const TextStyle(fontSize: 13),
                 ),
                 const SizedBox(height: 8),

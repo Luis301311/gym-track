@@ -12,8 +12,15 @@ class MeasurementStat {
   /// El cambio va en la dirección buena para esta medida.
   bool get improved {
     final d = deltaCm;
-    if (d == null || d == 0) return false;
+    if (d == null || d == 0 || type.neutral) return false;
     return type.higherIsBetter ? d > 0 : d < 0;
+  }
+
+  /// El cambio va en la dirección contraria a la buena.
+  bool get worsened {
+    final d = deltaCm;
+    if (d == null || d == 0 || type.neutral) return false;
+    return !improved;
   }
 }
 

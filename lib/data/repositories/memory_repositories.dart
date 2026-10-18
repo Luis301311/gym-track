@@ -159,6 +159,7 @@ class InMemoryProfileRepository
         goal: 'Ganar masa muscular',
         weeklyGoal: 5,
         heightCm: 175,
+        sex: Sex.male,
       );
 
   @override

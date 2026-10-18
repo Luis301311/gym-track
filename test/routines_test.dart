@@ -11,13 +11,17 @@ RecommendationInput _input({
   ExperienceLevel level = ExperienceLevel.intermediate,
   EquipmentAccess access = EquipmentAccess.gym,
   int minutes = 60,
+  TrainingEmphasis emphasis = TrainingEmphasis.balanced,
+  Sex sex = Sex.unspecified,
 }) =>
     RecommendationInput(
         goal: goal,
         daysPerWeek: days,
         level: level,
         access: access,
-        minutes: minutes);
+        minutes: minutes,
+        emphasis: emphasis,
+        sex: sex);
 
 class _Routines implements RoutineRepository, RoutineWriteRepository {
   final list = <Routine>[];
@@ -188,6 +192,73 @@ void main() {
       await c.saveRecommendation(c.recommend(_input(days: 2)), replace: true);
       expect(c.list, hasLength(2));
       expect(c.list.any((r) => r.id == 'mia'), isFalse);
+    });
+  });
+
+  group('Enfoque y sexo', () {
+    final lowerSet = {
+      MovementPattern.squat,
+      MovementPattern.hinge,
+      MovementPattern.lunge,
+      MovementPattern.glutes,
+      MovementPattern.legAccessory,
+      MovementPattern.calves,
+    };
+    int lowerCount(Routine r) =>
+        r.exercises.where((e) => lowerSet.contains(byId[e.id]!.pattern)).length;
+
+    test('glúteos y piernas: más trabajo de tren inferior y con glúteo', () {
+      final balanced = recommender.recommend(_input(days: 3));
+      final lower = recommender.recommend(
+          _input(days: 3, emphasis: TrainingEmphasis.lowerBody));
+      for (var i = 0; i < 3; i++) {
+        expect(lowerCount(lower.routines[i]),
+            greaterThan(lowerCount(balanced.routines[i])));
+        expect(
+            lower.routines[i].exercises
+                .any((e) => byId[e.id]!.pattern == MovementPattern.glutes),
+            isTrue);
+      }
+    });
+
+    test('torso y brazos: más trabajo de tren superior', () {
+      final balanced = recommender.recommend(_input(days: 3));
+      final upper = recommender.recommend(
+          _input(days: 3, emphasis: TrainingEmphasis.upperBody));
+      expect(lowerCount(upper.routines.first),
+          lessThan(lowerCount(balanced.routines.first)));
+    });
+
+    test('mujer: descansos 15 s más cortos, mismo volumen', () {
+      Exercise first(Sex sex) => recommender
+          .recommend(_input(sex: sex))
+          .routines
+          .first
+          .exercises
+          .first;
+      expect(first(Sex.female).restSeconds, first(Sex.male).restSeconds - 15);
+      expect(first(Sex.female).targetSets, first(Sex.male).targetSets);
+    });
+
+    test('sugerencia de enfoque según el sexo', () {
+      expect(TrainingEmphasisX.suggestedFor(Sex.female),
+          TrainingEmphasis.lowerBody);
+      expect(TrainingEmphasisX.suggestedFor(Sex.male),
+          TrainingEmphasis.balanced);
+      expect(TrainingEmphasisX.suggestedFor(Sex.unspecified),
+          TrainingEmphasis.balanced);
+    });
+
+    test('el enfoque no repite ejercicios en el día', () {
+      for (final em in TrainingEmphasis.values) {
+        for (var d = 2; d <= 6; d++) {
+          for (final r
+              in recommender.recommend(_input(days: d, emphasis: em)).routines) {
+            final ids = r.exercises.map((e) => e.id).toList();
+            expect(ids.toSet(), hasLength(ids.length), reason: '${em.name} $d');
+          }
+        }
+      }
     });
   });
 }

@@ -42,7 +42,7 @@
 
 ### 📋 Rutinas
 - **Arma la tuya:** nombre, días, ejercicios de un catálogo de ~50 (o personalizados), series × repeticiones y descanso. Se reordenan arrastrando.
-- **Recomiéndame:** 5 preguntas (objetivo, días, experiencia, equipo, tiempo) y genera un plan semanal completo.
+- **Recomiéndame:** 7 preguntas (sexo, enfoque, objetivo, días, experiencia, equipo, tiempo) y genera un plan semanal completo.
 
 | Días por semana | División |
 |---|---|
@@ -52,6 +52,8 @@
 
 Los ejercicios se eligen según tu equipo (gimnasio, mancuernas o sin equipo) y el volumen según tu objetivo y experiencia.
 
+**Enfoque y sexo:** los principios de entrenamiento son los mismos para todos. El enfoque (*Equilibrado*, *Glúteos y piernas* o *Torso y brazos*) agrega un ejercicio extra de esa zona en cada día y la prioriza. Si indicas mujer, se sugiere *Glúteos y piernas* (editable) y los descansos son ~15 s más cortos, porque en promedio la recuperación entre series es más rápida.
+
 ### 📈 Progreso
 - Vista por **semana, mes o año**.
 - Curva de **peso corporal** y botón para registrarlo.
@@ -60,7 +62,8 @@ Los ejercicios se eligen según tu equipo (gimnasio, mancuernas o sin equipo) y 
 
 ### 👤 Perfil
 - Nombre, objetivo, altura y meta semanal (editables).
-- **Medidas corporales** (pecho, brazo, cintura) con su cambio y color según si mejoran.
+- **Medidas corporales** (pecho, brazo, cintura, cadera, muslo) con su cambio: verde si mejora, naranja si empeora y azul cuando depende de tu objetivo (cadera, muslo).
+- **Sexo** (Hombre / Mujer / Prefiero no decir): solo para sugerir el enfoque y los descansos.
 - Mis rutinas y cerrar sesión.
 
 ### 🔐 Cuenta y modo sin conexión
@@ -168,14 +171,14 @@ deploy.ps1                         # compilar y publicar en un paso
 Todo vive bajo el uid del usuario en Firestore:
 
 ```
-users/{uid}                       name, goal, weeklyGoal, heightCm
+users/{uid}                       name, goal, weeklyGoal, heightCm, sex
 ├── routines/{id}                 name, focus, estimatedMinutes, weekdays[],
 │                                 exercises[{id, name, muscleGroup, equipment,
 │                                            targetSets, targetReps, restSeconds}]
 ├── sessions/{id}                 routineName, startedAt, finishedAt,
 │                                 logs[{exercise, sets[{reps, weightKg, completed}]}]
 ├── body_weights/{id}             date, kg
-└── measurements/{id}             date, valuesCm{chest, arm, waist}
+└── measurements/{id}             date, valuesCm{chest, arm, waist, hip, thigh}
 ```
 
 Es plano y con IDs explícitos, para poder llevarlo a tablas SQL sin dolor si algún día cambia el backend.
