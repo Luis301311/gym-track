@@ -50,7 +50,7 @@ class ProgressPage extends StatelessWidget {
               _RangeSelector(value: s.range, onChanged: c.setRange),
             ]),
             const SizedBox(height: 16),
-            _WeightCard(summary: s, onAdd: () => _askWeight(c)),
+            _WeightCard(summary: s, onAdd: showRegisterWeight),
             const SizedBox(height: 16),
             _VolumeCard(summary: s),
             const SizedBox(height: 20),
@@ -376,12 +376,13 @@ void _showAllRecords(List<RecordEntry> records) {
   );
 }
 
-Future<void> _askWeight(ProgressController c) async {
-  final ctrl = TextEditingController(
-    text: c.summary.value?.weight.current == null
-        ? ''
-        : formatKg(c.summary.value!.weight.current!),
-  );
+/// Formulario para registrar el peso del día. Se usa desde Progreso y desde
+/// la tarjeta "Peso" del Perfil.
+Future<void> showRegisterWeight() async {
+  final c = Get.find<ProgressController>();
+  final current = c.summary.value?.weight.current;
+  final ctrl =
+      TextEditingController(text: current == null ? '' : formatKg(current));
   final error = RxnString();
   final saving = false.obs;
 
@@ -390,63 +391,47 @@ Future<void> _askWeight(ProgressController c) async {
     final msg = await c.addWeight(ctrl.text);
     saving.value = false;
     if (msg == null) {
-      Get.back();
+      Get.back<void>();
+      showToast('Peso registrado.');
     } else {
       error.value = msg;
     }
   }
 
-  await Get.dialog<void>(
-    AlertDialog(
-      backgroundColor: AppColors.surface,
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.lg)),
-      title: const Text('Registrar peso',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-      content: Obx(() => TextField(
-            controller: ctrl,
-            autofocus: true,
-            keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-              LengthLimitingTextInputFormatter(6),
-            ],
-            onSubmitted: (_) => save(),
-            cursorColor: AppColors.primary,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
-            decoration: InputDecoration(
-              suffixText: 'kg',
-              errorText: error.value,
-              errorMaxLines: 2,
-              filled: true,
-              fillColor: AppColors.surface2,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide:
-                    const BorderSide(color: AppColors.primary, width: 1.5),
-              ),
-            ),
-          )),
-      actions: [
-        TextButton(
-          onPressed: () => Get.back(),
-          child: const Text('Cancelar',
-              style: TextStyle(color: AppColors.muted)),
+  await AppSheet.show<void>(
+    title: 'Registrar peso',
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text('Pésate en la mañana, en ayunas, para comparar mejor.',
+            style: TextStyle(fontSize: 13, color: AppColors.muted)),
+        const SizedBox(height: 14),
+        AppTextField(
+          controller: ctrl,
+          label: 'Peso de hoy',
+          suffix: 'kg',
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+            LengthLimitingTextInputFormatter(6),
+          ],
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => save(),
         ),
-        Obx(() => TextButton(
+        Obx(() => error.value == null
+            ? const SizedBox.shrink()
+            : Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Text(error.value!,
+                    style: const TextStyle(
+                        color: AppColors.orange, fontSize: 13)),
+              )),
+        const SizedBox(height: 18),
+        Obx(() => PrimaryButton(
+              label: saving.value ? 'Guardando…' : 'Guardar',
               onPressed: saving.value ? null : save,
-              child: const Text('Guardar',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w700, color: AppColors.primary)),
             )),
       ],
     ),
   );
-  // El controlador del texto no se libera aquí: el diálogo todavía lo usa
-  // durante la animación de cierre.
 }

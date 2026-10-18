@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -13,20 +14,27 @@ class StatCard extends StatelessWidget {
   final String label;
   final Color accent;
 
+  /// Si se pasa, la tarjeta es tocable y muestra un "+" (p. ej. registrar peso).
+  final VoidCallback? onTap;
+
   const StatCard({
     super.key,
     required this.value,
     required this.label,
     this.accent = AppColors.primary,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final card = Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.md),
+        border: onTap == null
+            ? null
+            : Border.all(color: AppColors.soft(accent, 0.35)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -55,6 +63,22 @@ class StatCard extends StatelessWidget {
             style: const TextStyle(fontSize: 12, color: AppColors.muted),
           ),
         ],
+      ),
+    );
+    if (onTap == null) return card;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        onTap: onTap,
+        child: Stack(children: [
+          card,
+          Positioned(
+            top: 10,
+            right: 10,
+            child: Icon(Icons.add_circle_rounded, size: 18, color: accent),
+          ),
+        ]),
       ),
     );
   }
@@ -388,11 +412,51 @@ class AppSheet extends StatelessWidget {
   }
 
   /// Abre la hoja ocupando lo necesario (y subiendo con el teclado).
-  static Future<T?> show<T>({required String title, required Widget child}) =>
-      Get.bottomSheet<T>(
-        AppSheet(title: title, child: child),
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
+  ///
+  /// En la versión web (PWA en el teléfono) el navegador mueve la pantalla al
+  /// abrir el teclado y los paneles inferiores quedan tapados. Ahí se abre
+  /// como pantalla completa, que maneja el teclado de forma confiable.
+  /// `Get.back()` cierra cualquiera de las dos.
+  static Future<T?> show<T>({required String title, required Widget child}) {
+    if (kIsWeb) {
+      return Get.to<T>(() => _FormPage(title: title, child: child),
+          fullscreenDialog: true)!;
+    }
+    return Get.bottomSheet<T>(
+      AppSheet(title: title, child: child),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
+  }
+}
+
+/// Pantalla completa para formularios (usada en web por [AppSheet.show]).
+class _FormPage extends StatelessWidget {
+  final String title;
+  final Widget child;
+  const _FormPage({required this.title, required this.child});
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(
+          backgroundColor: AppColors.bg,
+          surfaceTintColor: Colors.transparent,
+          leading: IconButton(
+            tooltip: 'Cerrar',
+            icon: const Icon(Icons.close_rounded),
+            onPressed: () => Get.back<void>(),
+          ),
+          title: Text(title,
+              style:
+                  const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+        ),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            child: child,
+          ),
+        ),
       );
 }
 

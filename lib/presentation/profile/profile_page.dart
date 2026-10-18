@@ -8,6 +8,7 @@ import '../../domain/usecases/profile_summary.dart';
 import '../../domain/utils/date_utils.dart';
 import '../../domain/utils/format.dart';
 import '../auth/auth_controller.dart';
+import '../progress/progress_page.dart';
 import '../routines/routines_page.dart';
 import '../widgets/common_widgets.dart';
 import 'profile_controller.dart';
@@ -124,7 +125,10 @@ class _Stats extends StatelessWidget {
     return Row(children: [
       Expanded(
         child: StatCard(
-            value: w == null ? '—' : '${formatKg(w)} kg', label: 'Peso'),
+          value: w == null ? '—' : '${formatKg(w)} kg',
+          label: w == null ? 'Registrar peso' : 'Peso',
+          onTap: showRegisterWeight,
+        ),
       ),
       const SizedBox(width: 10),
       Expanded(
