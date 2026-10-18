@@ -2,3 +2,14 @@
 build/
 .packages
 .flutter-plugins*
+
+# Firebase: caché del deploy y datos de los emuladores
+.firebase/
+emu-data/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# IDE
+.idea/
+*.iml
