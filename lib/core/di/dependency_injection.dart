@@ -1,10 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
 import '../../data/repositories/asset_exercise_library.dart';
+import '../../data/repositories/cloud_ai_coach.dart';
 import '../../data/repositories/firebase_auth_repository.dart';
 import '../../data/repositories/firestore_repositories.dart';
 import '../../data/repositories/memory_repositories.dart';
@@ -12,7 +14,9 @@ import '../../domain/metrics/progress_metrics.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/repositories/repositories.dart';
 import '../../domain/usecases/account_usecases.dart';
+import '../../domain/usecases/coach.dart';
 import '../../domain/usecases/get_home_summary.dart';
+import '../../domain/usecases/progression.dart';
 import '../../domain/usecases/routine_recommender.dart';
 import '../../domain/usecases/workout_usecases.dart';
 import '../../firebase_options.dart';
@@ -30,6 +34,10 @@ enum Backend { memory, firebase }
 /// Con --dart-define=EMULATORS=true el backend Firebase usa los emuladores
 /// locales (Auth y Firestore) en vez de la nube.
 const useFirebaseEmulators = bool.fromEnvironment('EMULATORS');
+
+/// Con --dart-define=AI_COACH=cloud (y BACKEND=firebase) el coach usa IA a
+/// través de la Cloud Function `coachWorkout`. Si no, usa el coach local.
+const useCloudCoach = String.fromEnvironment('AI_COACH') == 'cloud';
 
 Backend get currentBackend => Backend.values.firstWhere(
       (b) => b.name == const String.fromEnvironment('BACKEND'),
@@ -70,6 +78,7 @@ Future<void> initDependencies() async {
             : 'localhost';
         db.useFirestoreEmulator(host, 8080);
         await auth.useAuthEmulator(host, 9099);
+        FirebaseFunctions.instance.useFunctionsEmulator(host, 5001);
       }
       Get.put<WorkoutRepository>(FirestoreWorkoutRepository(db), permanent: true);
       final firestoreRoutines = FirestoreRoutineRepository(db);
@@ -85,6 +94,15 @@ Future<void> initDependencies() async {
       Get.put<BodyMetricsRepository>(FirestoreBodyMetricsRepository(db),
           permanent: true);
   }
+
+  // Coach al terminar: con IA si está activado, siempre con respaldo local.
+  Get.put<AiCoach>(
+    currentBackend == Backend.firebase && useCloudCoach
+        ? FallbackCoach(
+            CloudFunctionAiCoach(FirebaseFunctions.instance), const LocalCoach())
+        : const LocalCoach(),
+    permanent: true,
+  );
 
   // Biblioteca de ejercicios: igual para cualquier backend (va dentro de la app).
   Get.put<ExerciseLibraryRepository>(AssetExerciseLibrary(), permanent: true);
@@ -106,6 +124,7 @@ Future<void> initDependencies() async {
   );
   Get.lazyPut(() => GetPreviousPerformance(Get.find()), fenix: true);
   Get.lazyPut(() => FinishWorkout(Get.find()), fenix: true);
+  Get.lazyPut(() => GetProgressionSuggestions(Get.find()), fenix: true);
   Get.lazyPut(() => RoutineRecommender(), fenix: true);
   Get.lazyPut(
     () => EnsureStarterData(

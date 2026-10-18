@@ -5,7 +5,10 @@ import 'package:get/get.dart';
 import '../../core/theme/app_theme.dart';
 import '../../domain/catalog/exercise_catalog.dart';
 import '../../domain/entities/entities.dart';
+import '../../domain/usecases/coach.dart';
+import '../../domain/usecases/progression.dart';
 import '../../domain/usecases/workout_usecases.dart';
+import '../home/home_controller.dart';
 import '../../domain/utils/date_utils.dart';
 import '../../domain/utils/format.dart';
 import '../routines/recommend_page.dart';
@@ -497,6 +500,10 @@ class _ExerciseCard extends StatelessWidget {
                   : null,
             ),
           ]),
+          if (draft.suggestion != null) ...[
+            const SizedBox(height: 12),
+            _SuggestionBanner(suggestion: draft.suggestion!),
+          ],
           const SizedBox(height: 14),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 4),
@@ -523,6 +530,8 @@ class _ExerciseCard extends StatelessWidget {
               key: ValueKey('${e.id}-$si'),
               draft: draft.sets[si],
               previous: draft.previousFor(si),
+              hintKg: draft.suggestedKg(si),
+              hintReps: draft.suggestedReps(si),
               targetReps: e.targetReps,
               number: si + 1,
               active: si == active,
@@ -575,6 +584,51 @@ class _ExerciseCard extends StatelessWidget {
   }
 }
 
+/// "Hoy: 72.5 kg × 8" con su motivo (progresión doble).
+class _SuggestionBanner extends StatelessWidget {
+  final ProgressionSuggestion suggestion;
+  const _SuggestionBanner({required this.suggestion});
+
+  @override
+  Widget build(BuildContext context) {
+    final (IconData icon, Color color) = switch (suggestion.kind) {
+      ProgressionKind.increase => (Icons.trending_up_rounded, AppColors.primary),
+      ProgressionKind.deload => (Icons.trending_down_rounded, AppColors.orange),
+      ProgressionKind.harderVariant => (Icons.bolt_rounded, AppColors.primary),
+      ProgressionKind.firstTime => (Icons.flag_outlined, AppColors.blue),
+      ProgressionKind.hold => (Icons.repeat_rounded, AppColors.blue),
+    };
+    final showTarget = suggestion.kind != ProgressionKind.firstTime &&
+        suggestion.kind != ProgressionKind.harderVariant;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.soft(color, 0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(icon, size: 18, color: color),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (showTarget)
+                Text('Hoy: ${suggestion.target}',
+                    style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: color)),
+              Text(suggestion.reason,
+                  style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+            ],
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
 class _NavButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onTap;
@@ -593,6 +647,8 @@ class _NavButton extends StatelessWidget {
 class _SetRow extends StatefulWidget {
   final SetDraft draft;
   final WorkoutSet? previous;
+  final double? hintKg;
+  final int? hintReps;
   final String targetReps;
   final int number;
   final bool active;
@@ -605,6 +661,8 @@ class _SetRow extends StatefulWidget {
     super.key,
     required this.draft,
     required this.previous,
+    this.hintKg,
+    this.hintReps,
     required this.targetReps,
     required this.number,
     required this.active,
@@ -727,7 +785,7 @@ class _SetRowState extends State<_SetRow> {
           SizedBox(
             width: _wKg,
             child: _field(_kg,
-                hint: prev == null ? 'kg' : formatKg(prev.weightKg),
+                hint: widget.hintKg == null ? 'kg' : formatKg(widget.hintKg!),
                 decimal: true,
                 onChanged: widget.onKg),
           ),
@@ -735,7 +793,9 @@ class _SetRowState extends State<_SetRow> {
           SizedBox(
             width: _wReps,
             child: _field(_reps,
-                hint: prev == null ? widget.targetReps : '${prev.reps}',
+                hint: widget.hintReps == null
+                    ? widget.targetReps
+                    : '${widget.hintReps}',
                 decimal: false,
                 onChanged: widget.onReps),
           ),
@@ -1035,9 +1095,33 @@ void _toast(String message) {
   );
 }
 
-class _ResultDialog extends StatelessWidget {
+class _ResultDialog extends StatefulWidget {
   final WorkoutResult result;
   const _ResultDialog({required this.result});
+
+  @override
+  State<_ResultDialog> createState() => _ResultDialogState();
+}
+
+class _ResultDialogState extends State<_ResultDialog> {
+  late final Future<String> _coach = _askCoach();
+
+  Future<String> _askCoach() {
+    final home = Get.isRegistered<HomeController>()
+        ? Get.find<HomeController>().summary.value
+        : null;
+    final coach = Get.isRegistered<AiCoach>()
+        ? Get.find<AiCoach>()
+        : const LocalCoach();
+    return coach.workoutFeedback(CoachRequest(
+      result: widget.result,
+      profile: home?.profile,
+      // Inicio aún no cuenta la sesión recién guardada si no se ha actualizado.
+      weeklyDone: (home?.weeklyDone ?? 0) + (home?.trainedToday == true ? 0 : 1),
+    ));
+  }
+
+  WorkoutResult get result => widget.result;
 
   @override
   Widget build(BuildContext context) {
@@ -1086,6 +1170,44 @@ class _ResultDialog extends StatelessWidget {
                       label: 'Volumen',
                       accent: AppColors.blue)),
             ]),
+            const SizedBox(height: 16),
+            _CoachCard(future: _coach),
+            if (result.nextSteps.any((n) =>
+                n.kind == ProgressionKind.increase ||
+                n.kind == ProgressionKind.deload)) ...[
+              const SizedBox(height: 16),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Para la próxima',
+                    style:
+                        TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+              ),
+              const SizedBox(height: 6),
+              for (final n in result.nextSteps.where((n) =>
+                  n.kind == ProgressionKind.increase ||
+                  n.kind == ProgressionKind.deload))
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(children: [
+                    Icon(
+                      n.kind == ProgressionKind.increase
+                          ? Icons.trending_up_rounded
+                          : Icons.trending_down_rounded,
+                      size: 18,
+                      color: n.kind == ProgressionKind.increase
+                          ? AppColors.primary
+                          : AppColors.orange,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                        child: Text(n.exercise.name,
+                            style: const TextStyle(fontSize: 14))),
+                    Text(n.target,
+                        style: const TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w700)),
+                  ]),
+                ),
+            ],
             if (result.records.isNotEmpty) ...[
               const SizedBox(height: 20),
               const Align(
@@ -1111,4 +1233,41 @@ class _ResultDialog extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Mensaje del coach (IA o local) con estado de carga.
+class _CoachCard extends StatelessWidget {
+  final Future<String> future;
+  const _CoachCard({required this.future});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.soft(AppColors.primary, 0.1),
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Icon(Icons.auto_awesome_rounded,
+              size: 18, color: AppColors.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: FutureBuilder<String>(
+              future: future,
+              builder: (_, snap) => AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: snap.hasData
+                    ? Text(snap.data!,
+                        key: const ValueKey('msg'),
+                        style: const TextStyle(fontSize: 14, height: 1.35))
+                    : const Text('Tu coach está revisando la sesión…',
+                        key: ValueKey('loading'),
+                        style:
+                            TextStyle(fontSize: 13, color: AppColors.muted)),
+              ),
+            ),
+          ),
+        ]),
+      );
 }

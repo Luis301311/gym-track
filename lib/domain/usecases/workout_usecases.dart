@@ -1,5 +1,6 @@
 import '../entities/entities.dart';
 import '../repositories/repositories.dart';
+import 'progression.dart';
 
 /// Devuelve, por cada ejercicio, las series de la última vez que se hizo.
 /// Alimenta la columna "ANTERIOR" y los valores sugeridos de kg/reps.
@@ -37,7 +38,11 @@ class GetPreviousPerformance {
 class WorkoutResult {
   final WorkoutSession session;
   final List<PersonalRecord> records;
-  const WorkoutResult(this.session, this.records);
+
+  /// Qué hacer la próxima vez en cada ejercicio (progresión doble).
+  final List<ProgressionSuggestion> nextSteps;
+
+  const WorkoutResult(this.session, this.records, [this.nextSteps = const []]);
 
   int get completedSets =>
       session.logs.fold(0, (acc, l) => acc + l.completedSets.length);
@@ -78,15 +83,21 @@ List<PersonalRecord> detectPersonalRecords(
 /// Guarda el entrenamiento y devuelve el resumen con los récords logrados.
 class FinishWorkout {
   final WorkoutRepository workouts;
-  FinishWorkout(this.workouts);
+  final ProgressionAdvisor advisor;
+  FinishWorkout(this.workouts, {this.advisor = const ProgressionAdvisor()});
 
   Future<WorkoutResult> call(String userId, WorkoutSession session) async {
-    final history = await workouts.watchSessions(userId).first;
-    final records = detectPersonalRecords(
-      history.where((s) => s.id != session.id).toList(),
-      session,
-    );
+    final history = (await workouts.watchSessions(userId).first)
+        .where((s) => s.id != session.id)
+        .toList();
+    final records = detectPersonalRecords(history, session);
+    final withToday = [session, ...history];
+    final nextSteps = [
+      for (final log in session.logs)
+        if (log.completedSets.isNotEmpty)
+          advisor.suggest(log.exercise, exerciseHistory(withToday, log.exercise.id)),
+    ];
     await workouts.saveSession(userId, session);
-    return WorkoutResult(session, records);
+    return WorkoutResult(session, records, nextSteps);
   }
 }

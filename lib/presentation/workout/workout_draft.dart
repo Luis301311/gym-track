@@ -1,4 +1,5 @@
 import '../../domain/entities/entities.dart';
+import '../../domain/usecases/progression.dart';
 import '../../domain/utils/format.dart';
 
 /// Estado editable de una serie mientras se entrena (lo que hay en los campos).
@@ -16,16 +17,25 @@ class ExerciseDraft {
   final List<WorkoutSet> previous;
   final List<SetDraft> sets;
 
+  /// Qué hacer hoy según la progresión (null si no se calculó).
+  final ProgressionSuggestion? suggestion;
+
   ExerciseDraft({
     required this.exercise,
     required this.previous,
     required this.sets,
+    this.suggestion,
   });
 
-  factory ExerciseDraft.fromHistory(Exercise e, List<WorkoutSet> previous) =>
+  factory ExerciseDraft.fromHistory(
+    Exercise e,
+    List<WorkoutSet> previous, {
+    ProgressionSuggestion? suggestion,
+  }) =>
       ExerciseDraft(
         exercise: e,
         previous: previous,
+        suggestion: suggestion,
         // Las series las define el plan de la rutina; la vez anterior solo
         // sugiere kg y reps.
         sets: List.generate(
@@ -40,6 +50,12 @@ class ExerciseDraft {
     if (previous.isEmpty) return null;
     return previous[i < previous.length ? i : previous.length - 1];
   }
+
+  /// Peso sugerido para hoy: el de la progresión o, si no hay, el anterior.
+  double? suggestedKg(int i) => suggestion?.kg ?? previousFor(i)?.weightKg;
+
+  /// Repeticiones sugeridas para hoy.
+  int? suggestedReps(int i) => suggestion?.reps ?? previousFor(i)?.reps;
 
   int get doneCount => sets.where((s) => s.done).length;
   bool get isComplete => doneCount == sets.length;

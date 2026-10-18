@@ -40,6 +40,13 @@
 - Al finalizar: resumen con duración, series, volumen y **récords personales** nuevos.
 - La sesión sigue activa aunque cambies de pestaña.
 
+### 📈 Progresión automática y coach
+- Cada ejercicio muestra **qué hacer hoy** ("Hoy: 72.5 kg × 8") con su motivo, usando **progresión doble**:
+  todas las series en el tope del rango → sube el peso; si no → mismo peso y una repetición más;
+  dos sesiones por debajo del mínimo → baja ~10 %. Si dejas los campos vacíos y marcas ✓, se usa ese objetivo.
+- Al terminar, el **coach** comenta la sesión y muestra **qué subir la próxima vez**.
+  Por defecto es un coach local (reglas, sin internet); opcionalmente usa **IA** (ver abajo).
+
 ### 📋 Rutinas
 - **Arma la tuya:** nombre, días, ejercicios de un catálogo de ~50 (o personalizados), series × repeticiones y descanso. Se reordenan arrastrando.
 - **Recomiéndame:** 7 preguntas (sexo, enfoque, objetivo, días, experiencia, equipo, tiempo) y genera un plan semanal completo.
@@ -124,6 +131,7 @@ flowchart LR
 | Nueva tarjeta en Inicio | Clase que extienda `ProgressMetric` | `GetHomeSummary`, `HomePage` |
 | Nueva medida corporal (muslo…) | Una línea en `kMeasurementTypes` | Formulario, lista, cálculos |
 | Nueva división de rutina | Clase que extienda `SplitTemplate` | `RoutineRecommender` |
+| Otro proveedor de IA para el coach | Implementación de `AiCoach` (o cambiar la Cloud Function) | Pantalla de resultado |
 | Nuevo ejercicio en el catálogo curado | Una línea en `kExerciseCatalog` | Selector y recomendador |
 | Biblioteca desde Firestore o una API | Otra implementación de `ExerciseLibraryRepository` | Selector, editor de rutinas |
 
@@ -227,7 +235,8 @@ En VS Code están las tres configuraciones en *Ejecutar y depurar* (F5).
 | `--dart-define` | Valores | Efecto |
 |---|---|---|
 | `BACKEND` | `memory` (por defecto) · `firebase` | Fuente de datos |
-| `EMULATORS` | `true` · `false` (por defecto) | Usa Auth/Firestore locales |
+| `EMULATORS` | `true` · `false` (por defecto) | Usa Auth/Firestore/Functions locales |
+| `AI_COACH` | `cloud` · vacío (por defecto) | Coach con IA vía Cloud Function |
 
 ---
 
@@ -292,6 +301,24 @@ class TotalWorkoutsMetric extends ProgressMetric {
 
 ---
 
+## Coach con IA (opcional)
+
+El coach es un contrato (`AiCoach`) con dos implementaciones: `LocalCoach` (reglas, por defecto) y
+`CloudFunctionAiCoach`, que llama a la Cloud Function `coachWorkout` (`functions/`). La función es la
+única que conoce la llave del modelo, exige sesión iniciada, limita a 20 mensajes por persona al día
+y recibe solo un resumen del entrenamiento (sin nombre, correo ni ids). Si la IA falla o no hay señal,
+la app usa el coach local automáticamente (`FallbackCoach`).
+
+Activarla (una sola vez):
+1. Pasa el proyecto de Firebase al plan **Blaze** (pago por uso; tiene cuota gratis).
+2. Crea una llave en la consola de Anthropic y guárdala como secreto:
+   `firebase functions:secrets:set ANTHROPIC_API_KEY`
+3. Publica la función: `powershell -ExecutionPolicy Bypass -File deploy-functions.ps1`
+4. Publica la app con IA: `powershell -ExecutionPolicy Bypass -File deploy.ps1 -Ai`
+
+El modelo se cambia en `functions/.env` (`COACH_MODEL`). Para usar otro proveedor, cambia la llamada
+en `functions/src/index.ts`; la app no se toca.
+
 ## Biblioteca de ejercicios
 
 `assets/exercise_library.json` se genera a partir de
@@ -315,6 +342,8 @@ python tool/build_exercise_library.py free-exercise-db/dist/exercises.json
 - [x] PWA instalable en iPhone y Android
 - [ ] Recordatorios (notificaciones)
 - [x] Biblioteca de ~555 ejercicios con fotos
+- [x] Progresión automática (doble) y coach al terminar
+- [ ] Recomendador conversacional y ajustes por chat con IA
 - [ ] Gráfica de progreso por ejercicio
 - [ ] App nativa para iOS (TestFlight)
 - [ ] Backend propio (NestJS + Postgres)

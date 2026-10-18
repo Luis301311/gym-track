@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 
 import '../../domain/entities/entities.dart';
 import '../../domain/repositories/repositories.dart';
+import '../../domain/usecases/progression.dart';
 import '../../domain/usecases/workout_usecases.dart';
 import '../../domain/utils/format.dart';
 import 'workout_draft.dart';
@@ -16,6 +17,9 @@ class WorkoutController extends GetxController {
   final RoutineRepository routines;
   final GetPreviousPerformance getPrevious;
   final FinishWorkout finishWorkout;
+
+  /// Opcional: si está, cada ejercicio trae su objetivo de hoy (progresión).
+  final GetProgressionSuggestions? getSuggestions;
   final String userId;
   final DateTime Function() clock;
 
@@ -24,6 +28,7 @@ class WorkoutController extends GetxController {
     required this.getPrevious,
     required this.finishWorkout,
     required this.userId,
+    this.getSuggestions,
     DateTime Function()? clock,
   }) : clock = clock ?? DateTime.now;
 
@@ -79,9 +84,15 @@ class WorkoutController extends GetxController {
     starting.value = true;
     try {
       final previous = await getPrevious(userId, r.exercises);
+      final suggestions =
+          await getSuggestions?.call(userId, r.exercises) ?? const {};
       drafts.assignAll([
         for (final e in r.exercises)
-          ExerciseDraft.fromHistory(e, previous[e.id] ?? const []),
+          ExerciseDraft.fromHistory(
+            e,
+            previous[e.id] ?? const [],
+            suggestion: suggestions[e.id],
+          ),
       ]);
       current.value = 0;
       _startedAt = clock();
@@ -120,13 +131,14 @@ class WorkoutController extends GetxController {
       return null;
     }
 
-    final prev = d.previousFor(set);
-    final reps = s.reps.trim().isEmpty ? prev?.reps : int.tryParse(s.reps);
+    // Campos vacíos = "hice lo sugerido" (progresión o, si no, la vez anterior).
+    final reps =
+        s.reps.trim().isEmpty ? d.suggestedReps(set) : int.tryParse(s.reps);
     if (reps == null || reps <= 0) {
       return 'Escribe cuántas repeticiones hiciste.';
     }
     final double? kg =
-        s.kg.trim().isEmpty ? (prev?.weightKg ?? 0.0) : parseDecimal(s.kg);
+        s.kg.trim().isEmpty ? (d.suggestedKg(set) ?? 0.0) : parseDecimal(s.kg);
     if (kg == null || kg < 0) return 'El peso no es válido.';
 
     s

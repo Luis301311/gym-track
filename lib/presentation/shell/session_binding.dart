@@ -25,6 +25,7 @@ class SessionBinding extends Bindings {
         routines: Get.find(),
         getPrevious: Get.find(),
         finishWorkout: Get.find(),
+        getSuggestions: Get.find(),
         userId: userId,
       ),
       permanent: true,
