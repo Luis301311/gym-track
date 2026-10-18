@@ -26,8 +26,10 @@ class ExerciseDraft {
       ExerciseDraft(
         exercise: e,
         previous: previous,
+        // Las series las define el plan de la rutina; la vez anterior solo
+        // sugiere kg y reps.
         sets: List.generate(
-          previous.isEmpty ? 3 : previous.length,
+          e.targetSets < 1 ? 1 : e.targetSets,
           (_) => SetDraft(),
         ),
       );

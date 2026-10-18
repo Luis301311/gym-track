@@ -1,0 +1,105 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "gymtrack-7d27c",
+          "appId": "1:464066531612:android:6f7324fe64b25f7e2c2ad9",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "gymtrack-7d27c",
+          "configurations": {
+            "android": "1:464066531612:android:6f7324fe64b25f7e2c2ad9",
+            "ios": "1:464066531612:ios:c1f407c788f459232c2ad9",
+            "macos": "1:464066531612:ios:c1f407c788f459232c2ad9",
+            "web": "1:464066531612:web:6415b73f58f4280b2c2ad9",
+            "windows": "1:464066531612:web:8b1f6942e59c48cb2c2ad9"
+          }
+        }
+      }
+    }
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "/",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      },
+      {
+        "source": "**/*.@(html|json)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      },
+      {
+        "source": "/@(flutter_bootstrap.js|flutter.js|main.dart.js|gymtrack_sw.js)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      },
+      {
+        "source": "/canvaskit/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=604800"
+          }
+        ]
+      },
+      {
+        "source": "**/*.@(png|otf|ttf|woff2)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=86400"
+          }
+        ]
+      }
+    ]
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "emulators": {
+    "auth": {
+      "port": 9099
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "hosting": {
+      "port": 5000
+    },
+    "ui": {
+      "enabled": true,
+      "port": 4000
+    },
+    "singleProjectMode": true
+  }
+}

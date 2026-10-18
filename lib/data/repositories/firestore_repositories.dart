@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../domain/entities/entities.dart';
@@ -17,6 +19,19 @@ DateTime? _readTimestamp(Object? raw) =>
     raw is Timestamp ? raw.toDate() : null;
 Object? _writeTimestamp(DateTime? d) =>
     d == null ? null : Timestamp.fromDate(d);
+
+/// Firestore aplica cada escritura primero en la caché local y la sube al
+/// servidor cuando hay conexión. Si esperáramos la confirmación del servidor,
+/// en un gimnasio sin señal la app se quedaría "Guardando…". Por eso se espera
+/// un momento y, si no hay respuesta, se da por guardado: el dato ya está en
+/// el teléfono y Firestore lo sincroniza solo al volver la señal.
+Future<void> _offlineFriendly(Future<void> write) async {
+  try {
+    await write.timeout(const Duration(seconds: 3));
+  } on TimeoutException {
+    // Queda pendiente en la caché local; se sincroniza automáticamente.
+  }
+}
 
 class FirestoreWorkoutRepository implements WorkoutRepository {
   final FirebaseFirestore _db;
@@ -40,13 +55,33 @@ class FirestoreWorkoutRepository implements WorkoutRepository {
     final ref = session.id.isEmpty
         ? _sessions(userId).doc()
         : _sessions(userId).doc(session.id);
-    return ref.set(sessionToMap(session, _writeTimestamp));
+    return _offlineFriendly(ref.set(sessionToMap(session, _writeTimestamp)));
   }
 }
 
-class FirestoreRoutineRepository implements RoutineRepository {
+class FirestoreRoutineRepository
+    implements RoutineRepository, RoutineWriteRepository {
   final FirebaseFirestore _db;
   FirestoreRoutineRepository(this._db);
+
+  @override
+  Future<void> saveRoutine(String userId, Routine routine) => _offlineFriendly(
+        _db
+            .collection('users')
+            .doc(userId)
+            .collection('routines')
+            .doc(routine.id)
+            .set(routineToMap(routine)),
+      );
+
+  @override
+  Future<void> deleteRoutine(String userId, String routineId) =>
+      _offlineFriendly(_db
+          .collection('users')
+          .doc(userId)
+          .collection('routines')
+          .doc(routineId)
+          .delete());
 
   @override
   Future<List<Routine>> getRoutines(String userId) async {
@@ -62,10 +97,10 @@ class FirestoreProfileRepository
   FirestoreProfileRepository(this._db);
 
   @override
-  Future<void> saveProfile(UserProfile profile) => _db
+  Future<void> saveProfile(UserProfile profile) => _offlineFriendly(_db
       .collection('users')
       .doc(profile.id)
-      .set(profileToMap(profile), SetOptions(merge: true));
+      .set(profileToMap(profile), SetOptions(merge: true)));
 
   @override
   Future<UserProfile> getProfile(String userId) async {
@@ -96,7 +131,7 @@ class FirestoreBodyMetricsRepository implements BodyMetricsRepository {
     final ref = entry.id.isEmpty
         ? _weights(userId).doc()
         : _weights(userId).doc(entry.id);
-    return ref.set(weightToMap(entry, _writeTimestamp));
+    return _offlineFriendly(ref.set(weightToMap(entry, _writeTimestamp)));
   }
 }
 
@@ -120,6 +155,6 @@ class FirestoreMeasurementsRepository implements MeasurementsRepository {
   @override
   Future<void> addMeasurement(String userId, BodyMeasurement m) {
     final ref = m.id.isEmpty ? _col(userId).doc() : _col(userId).doc(m.id);
-    return ref.set(measurementToMap(m, _writeTimestamp));
+    return _offlineFriendly(ref.set(measurementToMap(m, _writeTimestamp)));
   }
 }

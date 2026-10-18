@@ -22,6 +22,9 @@ class HomeSummary {
   final UserProfile profile;
   final DateTime now;
   final Routine? todayRoutine;
+
+  /// false cuando la cuenta aún no tiene rutinas (hay que crearlas).
+  final bool hasRoutines;
   final bool trainedToday;
   final List<MetricValue> metrics;
   final List<WeekDay> week;
@@ -32,6 +35,7 @@ class HomeSummary {
     required this.profile,
     required this.now,
     required this.todayRoutine,
+    required this.hasRoutines,
     required this.trainedToday,
     required this.metrics,
     required this.week,
@@ -106,6 +110,7 @@ class GetHomeSummary {
       profile: profile,
       now: now,
       todayRoutine: todayRoutine,
+      hasRoutines: allRoutines.isNotEmpty,
       trainedToday: trainedDays.contains(today),
       metrics: [
         for (final m in metrics)

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 
 import '../../core/theme/app_theme.dart';
 
@@ -218,5 +220,170 @@ class Pill extends StatelessWidget {
         child: Text(text,
             style: TextStyle(
                 fontSize: 11, fontWeight: FontWeight.w700, color: color)),
+      );
+}
+
+/// Aviso breve en la parte inferior.
+void showToast(String message) {
+  Get.closeAllSnackbars();
+  Get.snackbar(
+    'GymTrack',
+    message,
+    snackPosition: SnackPosition.BOTTOM,
+    margin: const EdgeInsets.all(16),
+    colorText: AppColors.text,
+    backgroundColor: AppColors.surface2,
+    duration: const Duration(seconds: 2),
+  );
+}
+
+/// Campo de texto con el estilo de la app.
+class AppTextField extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final String? suffix;
+  final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
+  final TextCapitalization capitalization;
+  final bool obscureText;
+  final Widget? suffixIcon;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onSubmitted;
+  final Iterable<String>? autofillHints;
+
+  const AppTextField({
+    super.key,
+    required this.controller,
+    required this.label,
+    this.suffix,
+    this.keyboardType,
+    this.inputFormatters,
+    this.capitalization = TextCapitalization.none,
+    this.obscureText = false,
+    this.suffixIcon,
+    this.textInputAction,
+    this.onSubmitted,
+    this.autofillHints,
+  });
+
+  @override
+  Widget build(BuildContext context) => TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
+        textCapitalization: capitalization,
+        obscureText: obscureText,
+        textInputAction: textInputAction,
+        onSubmitted: onSubmitted,
+        autofillHints: autofillHints,
+        autocorrect: !obscureText,
+        enableSuggestions: !obscureText,
+        cursorColor: AppColors.primary,
+        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        decoration: InputDecoration(
+          labelText: label,
+          suffixText: suffix,
+          suffixIcon: suffixIcon,
+          labelStyle: const TextStyle(color: AppColors.muted),
+          floatingLabelStyle: const TextStyle(color: AppColors.primary),
+          filled: true,
+          fillColor: AppColors.surface2,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          ),
+        ),
+      );
+}
+
+/// Logo de la app: mancuerna sobre círculo verde lima.
+class AppLogo extends StatelessWidget {
+  final double size;
+  const AppLogo({super.key, this.size = 64});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: size,
+        height: size,
+        decoration: const BoxDecoration(
+          color: AppColors.primary,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(Icons.fitness_center_rounded,
+            size: size * 0.5, color: AppColors.onPrimary),
+      );
+}
+
+/// Hoja inferior con formulario. El espacio del teclado se reserva FUERA del
+/// panel: el panel sube completo sobre el teclado y su contenido hace scroll,
+/// así el campo que estás escribiendo siempre queda a la vista.
+class AppSheet extends StatelessWidget {
+  final String title;
+  final Widget child;
+  const AppSheet({super.key, required this.title, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final mq = MediaQuery.of(context);
+    final keyboard = mq.viewInsets.bottom;
+    final maxHeight =
+        (mq.size.height - keyboard - mq.padding.top - 24).clamp(160.0, double.infinity);
+    return Padding(
+      padding: EdgeInsets.only(bottom: keyboard),
+      child: Container(
+        constraints: BoxConstraints(maxHeight: maxHeight),
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          top: false,
+          bottom: keyboard == 0,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 12),
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.surface2,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
+                child: Text(title,
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.w700)),
+              ),
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 4, 24, 16),
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  child: child,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Abre la hoja ocupando lo necesario (y subiendo con el teclado).
+  static Future<T?> show<T>({required String title, required Widget child}) =>
+      Get.bottomSheet<T>(
+        AppSheet(title: title, child: child),
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
       );
 }

@@ -37,3 +37,9 @@ abstract class MeasurementsRepository {
   Stream<List<BodyMeasurement>> watchMeasurements(String userId);
   Future<void> addMeasurement(String userId, BodyMeasurement measurement);
 }
+
+/// Escritura de rutinas (separada de la lectura, igual que el perfil).
+abstract class RoutineWriteRepository {
+  Future<void> saveRoutine(String userId, Routine routine);
+  Future<void> deleteRoutine(String userId, String routineId);
+}

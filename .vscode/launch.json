@@ -1,0 +1,30 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "GymTrack (Firebase)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "--dart-define=BACKEND=firebase"
+      ]
+    },
+    {
+      "name": "GymTrack (emuladores locales)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "--dart-define=BACKEND=firebase",
+        "--dart-define=EMULATORS=true"
+      ]
+    },
+    {
+      "name": "GymTrack (datos de ejemplo)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart"
+    }
+  ]
+}

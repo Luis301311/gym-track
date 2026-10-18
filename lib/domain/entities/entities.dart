@@ -10,13 +10,38 @@ class Exercise {
   /// Descanso recomendado entre series, en segundos.
   final int restSeconds;
 
+  /// Plan para este ejercicio dentro de la rutina: series y repeticiones
+  /// objetivo (p. ej. 4 × "8-10").
+  final int targetSets;
+  final String targetReps;
+
   const Exercise({
     required this.id,
     required this.name,
     required this.muscleGroup,
     this.equipment = '',
     this.restSeconds = 90,
+    this.targetSets = 3,
+    this.targetReps = '8-12',
   });
+
+  Exercise copyWith({
+    String? name,
+    String? muscleGroup,
+    String? equipment,
+    int? restSeconds,
+    int? targetSets,
+    String? targetReps,
+  }) =>
+      Exercise(
+        id: id,
+        name: name ?? this.name,
+        muscleGroup: muscleGroup ?? this.muscleGroup,
+        equipment: equipment ?? this.equipment,
+        restSeconds: restSeconds ?? this.restSeconds,
+        targetSets: targetSets ?? this.targetSets,
+        targetReps: targetReps ?? this.targetReps,
+      );
 }
 
 class WorkoutSet {
@@ -93,6 +118,45 @@ class Routine {
     required this.estimatedMinutes,
     required this.weekdays,
   });
+
+  /// Crea una rutina calculando el enfoque y la duración a partir de los
+  /// ejercicios, para no tener que escribirlos a mano.
+  factory Routine.build({
+    required String id,
+    required String name,
+    required List<Exercise> exercises,
+    required List<int> weekdays,
+  }) =>
+      Routine(
+        id: id,
+        name: name,
+        focus: describeFocus(exercises),
+        exercises: exercises,
+        estimatedMinutes: estimateMinutes(exercises),
+        weekdays: [...weekdays]..sort(),
+      );
+}
+
+/// "Pecho, hombro y tríceps": grupos musculares en orden de aparición.
+String describeFocus(List<Exercise> exercises) {
+  final groups = <String>[];
+  for (final e in exercises) {
+    final g = e.muscleGroup.trim();
+    if (g.isNotEmpty && !groups.contains(g)) groups.add(g);
+  }
+  if (groups.isEmpty) return '';
+  final shown = groups.take(3).map((g) => g.toLowerCase()).toList();
+  shown[0] = groups.first; // primera en mayúscula
+  if (shown.length == 1) return shown.first;
+  return '${shown.sublist(0, shown.length - 1).join(', ')} y ${shown.last}';
+}
+
+/// Duración aproximada: ~45 s por serie más el descanso, y 5 min de
+/// calentamiento.
+int estimateMinutes(List<Exercise> exercises) {
+  final seconds = exercises.fold<int>(
+      0, (acc, e) => acc + e.targetSets * (45 + e.restSeconds));
+  return exercises.isEmpty ? 0 : (seconds / 60).round() + 5;
 }
 
 class UserProfile {

@@ -12,6 +12,8 @@ Map<String, dynamic> exerciseToMap(Exercise e) => {
       'muscleGroup': e.muscleGroup,
       'equipment': e.equipment,
       'restSeconds': e.restSeconds,
+      'targetSets': e.targetSets,
+      'targetReps': e.targetReps,
     };
 
 Exercise exerciseFromMap(Map<String, dynamic> m) => Exercise(
@@ -20,6 +22,8 @@ Exercise exerciseFromMap(Map<String, dynamic> m) => Exercise(
       muscleGroup: m['muscleGroup'] as String? ?? '',
       equipment: m['equipment'] as String? ?? '',
       restSeconds: (m['restSeconds'] as num?)?.toInt() ?? 90,
+      targetSets: (m['targetSets'] as num?)?.toInt() ?? 3,
+      targetReps: m['targetReps'] as String? ?? '8-12',
     );
 
 Map<String, dynamic> sessionToMap(WorkoutSession s, DateWriter writeDate) => {
@@ -69,6 +73,14 @@ WorkoutSession sessionFromMap(
           ),
       ],
     );
+
+Map<String, dynamic> routineToMap(Routine r) => {
+      'name': r.name,
+      'focus': r.focus,
+      'estimatedMinutes': r.estimatedMinutes,
+      'weekdays': r.weekdays,
+      'exercises': [for (final e in r.exercises) exerciseToMap(e)],
+    };
 
 Routine routineFromMap(String id, Map<String, dynamic> m) => Routine(
       id: id,

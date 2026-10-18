@@ -7,6 +7,9 @@ import '../../domain/entities/entities.dart';
 import '../../domain/usecases/workout_usecases.dart';
 import '../../domain/utils/date_utils.dart';
 import '../../domain/utils/format.dart';
+import '../routines/recommend_page.dart';
+import '../routines/routine_editor_page.dart';
+import '../routines/routines_page.dart';
 import '../shell/shell_controller.dart';
 import '../widgets/common_widgets.dart';
 import 'workout_controller.dart';
@@ -73,15 +76,28 @@ class _RoutinePicker extends StatelessWidget {
       return ListView(
         padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
         children: [
-          const Text('Entrenar',
-              style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700)),
+          Row(children: [
+            const Expanded(
+              child: Text('Entrenar',
+                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700)),
+            ),
+            if (list.isNotEmpty)
+              TextButton.icon(
+                onPressed: () => Get.to<void>(() => const RoutinesPage()),
+                icon: const Icon(Icons.tune_rounded,
+                    size: 18, color: AppColors.primary),
+                label: const Text('Mis rutinas',
+                    style: TextStyle(color: AppColors.primary)),
+              ),
+          ]),
           const SizedBox(height: 4),
-          const Text('Elige una rutina para empezar',
-              style: TextStyle(fontSize: 13, color: AppColors.muted)),
+          Text(
+              list.isEmpty
+                  ? 'Primero necesitas una rutina'
+                  : 'Elige una rutina para empezar',
+              style: const TextStyle(fontSize: 13, color: AppColors.muted)),
           const SizedBox(height: 20),
-          if (list.isEmpty)
-            const Text('Aún no tienes rutinas creadas.',
-                style: TextStyle(color: AppColors.muted)),
+          if (list.isEmpty) const _NoRoutines(),
           for (final r in list) ...[
             _RoutineCard(
               routine: r,
@@ -94,6 +110,57 @@ class _RoutinePicker extends StatelessWidget {
       );
     });
   }
+}
+
+/// Estado vacío: armar la rutina o pedir una recomendación.
+class _NoRoutines extends StatelessWidget {
+  const _NoRoutines();
+
+  @override
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+            ),
+            child: const Column(children: [
+              Icon(Icons.fitness_center_rounded,
+                  size: 36, color: AppColors.primary),
+              SizedBox(height: 12),
+              Text('Arma tu plan de entrenamiento',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+              SizedBox(height: 6),
+              Text(
+                  'Créalo a tu gusto o responde 5 preguntas y te recomendamos uno.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: AppColors.muted)),
+            ]),
+          ),
+          const SizedBox(height: 14),
+          PrimaryButton(
+            label: 'Recomiéndame una rutina',
+            trailingIcon: Icons.auto_awesome_rounded,
+            onPressed: () => Get.to<void>(() => const RecommendPage()),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton(
+            onPressed: () => Get.to<void>(() => const RoutineEditorPage()),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(52),
+              side: const BorderSide(color: AppColors.surface2, width: 1.5),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+            ),
+            child: const Text('Crear la mía',
+                style: TextStyle(
+                    fontWeight: FontWeight.w700, color: AppColors.text)),
+          ),
+        ],
+      );
 }
 
 class _RoutineCard extends StatelessWidget {
@@ -188,7 +255,7 @@ class _ActiveWorkout extends StatelessWidget {
 
   String _plan(ExerciseDraft d) {
     final prev = d.previousFor(0);
-    final base = '${d.sets.length} series';
+    final base = '${d.sets.length} × ${d.exercise.targetReps}';
     return prev == null ? base : '$base · ${formatSet(prev.weightKg, prev.reps)}';
   }
 
@@ -355,7 +422,7 @@ class _ExerciseCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final e = draft.exercise;
     final info = [
-      e.muscleGroup,
+      'Objetivo ${e.targetSets} × ${e.targetReps}',
       if (e.equipment.isNotEmpty) e.equipment,
       'Descanso ${e.restSeconds} s',
     ].join(' · ');
@@ -439,6 +506,7 @@ class _ExerciseCard extends StatelessWidget {
               key: ValueKey('${e.id}-$si'),
               draft: draft.sets[si],
               previous: draft.previousFor(si),
+              targetReps: e.targetReps,
               number: si + 1,
               active: si == active,
               onKg: (v) => c.updateKg(index, si, v),
@@ -508,6 +576,7 @@ class _NavButton extends StatelessWidget {
 class _SetRow extends StatefulWidget {
   final SetDraft draft;
   final WorkoutSet? previous;
+  final String targetReps;
   final int number;
   final bool active;
   final ValueChanged<String> onKg;
@@ -519,6 +588,7 @@ class _SetRow extends StatefulWidget {
     super.key,
     required this.draft,
     required this.previous,
+    required this.targetReps,
     required this.number,
     required this.active,
     required this.onKg,
@@ -648,7 +718,7 @@ class _SetRowState extends State<_SetRow> {
           SizedBox(
             width: _wReps,
             child: _field(_reps,
-                hint: prev == null ? 'reps' : '${prev.reps}',
+                hint: prev == null ? widget.targetReps : '${prev.reps}',
                 decimal: false,
                 onChanged: widget.onReps),
           ),

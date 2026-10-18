@@ -3,12 +3,16 @@ import 'package:get/get.dart';
 
 import 'core/di/dependency_injection.dart';
 import 'core/theme/app_theme.dart';
-import 'presentation/shell/app_binding.dart';
-import 'presentation/shell/shell_page.dart';
+import 'presentation/auth/auth_controller.dart';
+import 'presentation/auth/auth_gate.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initDependencies();
+  Get.put(
+    AuthController(auth: Get.find(), ensureStarterData: Get.find()),
+    permanent: true,
+  );
   runApp(const GymTrackApp());
 }
 
@@ -21,8 +25,7 @@ class GymTrackApp extends StatelessWidget {
       title: 'GymTrack',
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
-      initialBinding: AppBinding(),
-      home: const ShellPage(),
+      home: const AuthGate(),
     );
   }
 }

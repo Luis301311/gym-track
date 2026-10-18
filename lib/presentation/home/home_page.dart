@@ -6,6 +6,7 @@ import '../../domain/entities/entities.dart';
 import '../../domain/usecases/get_home_summary.dart';
 import '../../domain/utils/date_utils.dart';
 import '../../domain/utils/format.dart';
+import '../routines/routines_page.dart';
 import '../shell/shell_controller.dart';
 import '../workout/workout_controller.dart';
 import '../widgets/common_widgets.dart';
@@ -122,7 +123,12 @@ class _TodayCard extends StatelessWidget {
         color: Color(0xB30E0F12)); // onPrimary al 70 %
 
     final String tag, title, subtitle;
-    if (r == null) {
+    final noRoutines = !summary.hasRoutines;
+    if (noRoutines) {
+      tag = 'EMPIEZA AQUÍ';
+      title = 'Arma tu rutina';
+      subtitle = 'Créala tú o pide una recomendación';
+    } else if (r == null) {
       tag = 'HOY · DESCANSO';
       title = 'Día de recuperación';
       subtitle = 'Estira, camina y descansa bien';
@@ -157,7 +163,9 @@ class _TodayCard extends StatelessWidget {
           Obx(() {
             final active = workout.isActive;
             final String cta;
-            if (active) {
+            if (noRoutines) {
+              cta = 'Crear mi rutina';
+            } else if (active) {
               cta = 'Continuar entrenamiento';
             } else if (r == null) {
               cta = 'Entrenar de todas formas';
@@ -171,6 +179,10 @@ class _TodayCard extends StatelessWidget {
               dark: true,
               trailingIcon: Icons.arrow_forward_rounded,
               onPressed: () {
+                if (noRoutines) {
+                  Get.to<void>(() => const RoutinesPage());
+                  return;
+                }
                 // Con rutina para hoy se arranca directo; si no, se abre el
                 // selector de rutinas en la pestaña Entrenar.
                 if (!active && r != null) workout.start(r);

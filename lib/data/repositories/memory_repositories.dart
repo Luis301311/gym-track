@@ -1,36 +1,15 @@
 import 'dart:async';
 
+import '../../domain/catalog/starter_routines.dart';
 import '../../domain/entities/entities.dart';
+import '../../domain/repositories/auth_repository.dart';
 import '../../domain/repositories/repositories.dart';
 import '../../domain/utils/date_utils.dart';
 
 /// Implementaciones en memoria con datos de ejemplo.
 /// Permiten correr la app sin configurar Firebase y sirven para pruebas.
 
-const _bench = Exercise(id: 'bench', name: 'Press de banca', muscleGroup: 'Pecho', equipment: 'Barra');
-const _ohp = Exercise(id: 'ohp', name: 'Press militar', muscleGroup: 'Hombro', equipment: 'Barra');
-const _dips = Exercise(id: 'dips', name: 'Fondos', muscleGroup: 'Tríceps', equipment: 'Paralelas');
-const _row = Exercise(id: 'row', name: 'Remo con barra', muscleGroup: 'Espalda', equipment: 'Barra');
-const _pullup = Exercise(id: 'pullup', name: 'Dominadas', muscleGroup: 'Espalda', equipment: 'Barra fija');
-const _curl = Exercise(id: 'curl', name: 'Curl de bíceps', muscleGroup: 'Bíceps', equipment: 'Mancuernas', restSeconds: 60);
-const _squat = Exercise(id: 'squat', name: 'Sentadilla', muscleGroup: 'Piernas', equipment: 'Barra', restSeconds: 150);
-const _rdl = Exercise(id: 'rdl', name: 'Peso muerto rumano', muscleGroup: 'Femoral', equipment: 'Barra', restSeconds: 120);
-const _lunge = Exercise(id: 'lunge', name: 'Zancadas', muscleGroup: 'Piernas', equipment: 'Mancuernas');
-
-final _routines = <Routine>[
-  const Routine(
-    id: 'push', name: 'Push Day', focus: 'Pecho, hombro y tríceps',
-    exercises: [_bench, _ohp, _dips], estimatedMinutes: 55, weekdays: [1, 4],
-  ),
-  const Routine(
-    id: 'pull', name: 'Pull Day', focus: 'Espalda y bíceps',
-    exercises: [_row, _pullup, _curl], estimatedMinutes: 50, weekdays: [2, 5],
-  ),
-  const Routine(
-    id: 'legs', name: 'Leg Day', focus: 'Piernas y glúteos',
-    exercises: [_squat, _rdl, _lunge], estimatedMinutes: 60, weekdays: [3, 6],
-  ),
-];
+final _routines = <Routine>[...kStarterRoutines];
 
 /// Pesos de trabajo base por ejercicio para generar el historial.
 const _baseKg = {
@@ -96,9 +75,75 @@ class InMemoryWorkoutRepository implements WorkoutRepository {
   }
 }
 
-class InMemoryRoutineRepository implements RoutineRepository {
+class InMemoryRoutineRepository
+    implements RoutineRepository, RoutineWriteRepository {
   @override
-  Future<List<Routine>> getRoutines(String userId) async => _routines;
+  Future<List<Routine>> getRoutines(String userId) async =>
+      List.unmodifiable(_routines);
+
+  @override
+  Future<void> saveRoutine(String userId, Routine routine) async {
+    final i = _routines.indexWhere((r) => r.id == routine.id);
+    if (i >= 0) {
+      _routines[i] = routine; // conserva el orden al editar
+    } else {
+      _routines.add(routine);
+    }
+  }
+
+  @override
+  Future<void> deleteRoutine(String userId, String routineId) async {
+    _routines.removeWhere((r) => r.id == routineId);
+  }
+}
+
+/// Sesión simulada: arranca con el usuario de ejemplo ya dentro, así la app
+/// abre directo en Inicio cuando se corre sin Firebase.
+class InMemoryAuthRepository implements AuthRepository {
+  static const demo =
+      AuthUser(uid: 'demo-user', email: 'demo@gymtrack.app', displayName: 'Luis Vega');
+
+  AuthUser? _current;
+  final _controller = StreamController<AuthUser?>.broadcast();
+
+  InMemoryAuthRepository({bool signedIn = true}) : _current = signedIn ? demo : null;
+
+  @override
+  Stream<AuthUser?> authStateChanges() async* {
+    yield _current;
+    yield* _controller.stream;
+  }
+
+  void _emit(AuthUser? u) {
+    _current = u;
+    _controller.add(u);
+  }
+
+  @override
+  Future<AuthUser> signIn({required String email, required String password}) async {
+    if (password.length < 6) {
+      throw const AuthFailure('Correo o contraseña incorrectos.');
+    }
+    _emit(demo);
+    return demo;
+  }
+
+  @override
+  Future<AuthUser> signUp({
+    required String name,
+    required String email,
+    required String password,
+  }) async {
+    final u = AuthUser(uid: demo.uid, email: email, displayName: name);
+    _emit(u);
+    return u;
+  }
+
+  @override
+  Future<void> sendPasswordReset(String email) async {}
+
+  @override
+  Future<void> signOut() async => _emit(null);
 }
 
 class InMemoryProfileRepository
@@ -117,9 +162,26 @@ class InMemoryProfileRepository
       );
 
   @override
-  Future<void> saveProfile(UserProfile profile) async =>
-      _profiles[profile.id] = profile;
+  Future<void> saveProfile(UserProfile profile) async {
+    _profiles[profile.id] = profile;
+  }
 }
+
+/// Peso de ejemplo: un registro cada 3 días durante ~4 meses, bajando poco a
+/// poco de 80.5 a 78.4 kg con algo de variación natural.
+List<BodyWeightEntry> _seedWeights(DateTime now) {
+  const days = 120, every = 3;
+  const wobble = [0.0, 0.3, -0.2, 0.4, -0.1, 0.2, -0.3, 0.1];
+  final list = <BodyWeightEntry>[];
+  for (var back = days, i = 0; back >= 0; back -= every, i++) {
+    final t = 1 - back / days; // 0 -> 1
+    final kg = back == 0 ? 78.4 : 80.5 - 2.1 * t + wobble[i % wobble.length];
+    list.add(BodyWeightEntry(
+      id: 'w-$back',
+      date: dayOnly(now).subtract(Duration(days: back)).add(const Duration(hours: 7)),
+      kg: (kg * 10).roundToDouble() / 10,
+    ));
+  }
   return list;
 }
 

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../home/home_page.dart';
+import '../profile/profile_page.dart';
 import '../progress/progress_page.dart';
 import '../workout/workout_controller.dart';
 import '../workout/workout_page.dart';
@@ -24,7 +25,7 @@ class ShellPage extends StatelessWidget {
     _Tab('Inicio', Icons.home_outlined, HomePage()),
     _Tab('Entrenar', Icons.fitness_center_rounded, WorkoutPage()),
     _Tab('Progreso', Icons.show_chart_rounded, ProgressPage()),
-    _Tab('Perfil', Icons.person_outline_rounded, _ComingSoon('Perfil')),
+    _Tab('Perfil', Icons.person_outline_rounded, ProfilePage()),
   ];
 
   @override
@@ -114,26 +115,4 @@ class _BottomNav extends StatelessWidget {
       ),
     );
   }
-}
-
-class _ComingSoon extends StatelessWidget {
-  final String title;
-  const _ComingSoon(this.title);
-
-  @override
-  Widget build(BuildContext context) => SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(title,
-                  style: const TextStyle(
-                      fontSize: 26, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 8),
-              const Text('Próximamente',
-                  style: TextStyle(color: AppColors.muted)),
-            ],
-          ),
-        ),
-      );
 }

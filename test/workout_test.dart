@@ -60,11 +60,12 @@ void main() {
         (await InMemoryRoutineRepository().getRoutines('u'))
             .firstWhere((r) => r.id == 'push');
 
-    test('al empezar trae las series de la vez anterior', () async {
+    test('al empezar arma las series del plan y trae la vez anterior', () async {
       await c.start(await push());
       expect(c.isActive, isTrue);
-      expect(c.drafts.first.previous, isNotEmpty);
-      expect(c.drafts.first.sets.length, c.drafts.first.previous.length);
+      final d = c.drafts.first;
+      expect(d.previous, isNotEmpty);
+      expect(d.sets.length, d.exercise.targetSets);
     });
 
     test('completar una serie vacía usa los valores anteriores e inicia el descanso',
@@ -77,7 +78,7 @@ void main() {
       expect(s.done, isTrue);
       expect(s.reps, '${prev.reps}');
       expect(c.isResting, isTrue);
-      expect(c.restRemaining.value, _bench.restSeconds);
+      expect(c.restRemaining.value, c.drafts.first.exercise.restSeconds);
     });
 
     test('pide reps cuando no hay referencia', () async {
