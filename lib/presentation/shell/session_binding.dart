@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 
+import '../../domain/usecases/progression.dart';
 import '../home/home_controller.dart';
 import '../profile/profile_controller.dart';
 import '../progress/progress_controller.dart';
@@ -25,7 +26,9 @@ class SessionBinding extends Bindings {
         routines: Get.find(),
         getPrevious: Get.find(),
         finishWorkout: Get.find(),
-        getSuggestions: Get.find(),
+        // Tipo explícito: el parámetro es opcional (nullable) y GetX buscaría
+        // "GetProgressionSuggestions?", que no está registrado.
+        getSuggestions: Get.find<GetProgressionSuggestions>(),
         userId: userId,
       ),
       permanent: true,

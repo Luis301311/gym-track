@@ -332,25 +332,39 @@ class _WorkoutHeader extends StatelessWidget {
             ],
           ),
         ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-            color: AppColors.soft(AppColors.primary),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.timer_outlined,
-                size: 16, color: AppColors.primary),
-            const SizedBox(width: 6),
-            // Solo este texto se redibuja cada segundo.
-            Obx(() => Text(formatDuration(c.elapsed.value),
-                style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
-                    fontFeatures: [FontFeature.tabularFigures()]))),
-          ]),
-        ),
+        // Reloj siempre visible: tiempo total, o la cuenta regresiva del
+        // descanso mientras descansas (tócalo para saltarlo).
+        Obx(() {
+          final resting = c.isResting;
+          final color = resting ? AppColors.orange : AppColors.primary;
+          return GestureDetector(
+            onTap: resting ? c.skipRest : null,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.soft(color),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(resting ? Icons.hourglass_bottom_rounded : Icons.timer_outlined,
+                    size: 16, color: color),
+                const SizedBox(width: 6),
+                Text(
+                  resting
+                      ? formatDuration(Duration(seconds: c.restRemaining.value))
+                      : formatDuration(c.elapsed.value),
+                  style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: color,
+                      fontFeatures: const [FontFeature.tabularFigures()]),
+                ),
+              ]),
+            ),
+          );
+        }),
         const SizedBox(width: 4),
         IconButton(
           tooltip: 'Descartar entrenamiento',

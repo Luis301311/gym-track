@@ -47,12 +47,15 @@ void main() {
     expect(find.text('Entrenamiento en curso'), findsOneWidget);
     expect(find.text('Press de banca'), findsOneWidget);
 
-    // Completar la primera serie con los valores sugeridos (vez anterior).
+    // Completar la primera serie con el objetivo de hoy (campos vacíos).
     final c = Get.find<WorkoutController>();
     await tester.tap(find.byIcon(Icons.check_rounded).first);
     await tester.pump(const Duration(milliseconds: 300));
     expect(c.doneSets, 1);
-    expect(find.text('Descanso'), findsOneWidget);
+    expect(c.isResting, isTrue);
+    // La tarjeta de descanso puede quedar más abajo del área visible de la
+    // prueba (800×600), por eso se busca también fuera de pantalla.
+    expect(find.text('Descanso', skipOffstage: false), findsOneWidget);
 
     // Limpiar timers antes de terminar la prueba.
     c.discard();

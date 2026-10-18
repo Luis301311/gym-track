@@ -7,6 +7,13 @@ $ErrorActionPreference = 'Stop'
 $defines = @('--dart-define=BACKEND=firebase')
 if ($Ai) { $defines += '--dart-define=AI_COACH=cloud' }
 
+Write-Host "0/2 Corriendo pruebas (si alguna falla, no se publica)..." -ForegroundColor Cyan
+flutter test
+if ($LASTEXITCODE -ne 0) {
+  Write-Host "Hay pruebas fallando: corrige antes de publicar." -ForegroundColor Red
+  exit $LASTEXITCODE
+}
+
 Write-Host "1/2 Compilando la app web con Firebase..." -ForegroundColor Cyan
 flutter build web --release @defines --no-web-resources-cdn
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
